@@ -1,0 +1,65 @@
+{
+  "week": 4,
+  "theme": "Data Integration, API Client and Concurrency",
+  "sessions": [
+    {
+      "description": "Designed DTOs for DnD5e API integration"
+    },
+    {
+      "description": "Implemented API client with dependency injection"
+    },
+    {
+      "description": "Created service layer using ExecutorService and Callable"
+    },
+    {
+      "description": "Implemented price conversion logic"
+    },
+    {
+      "description": "Wrote unit tests for business logic"
+    }
+  ],
+  "goals": [
+    "Integrate external API data",
+    "Separate client and service responsibilities",
+    "Use ExecutorService for parallel data fetching",
+    "Implement deterministic price calculation"
+  ],
+  "decisionsMade": [
+    "Client handles only HTTP and JSON mapping",
+    "Injected ObjectMapper instead of instantiating internally",
+    "Placed concurrency logic in service layer",
+    "Avoided real HTTP calls in unit tests"
+  ],
+  "workCompleted": [
+    "Created EquipmentListDTO and ImportedItemDTO",
+    "Implemented Dnd5eClient with list and detail methods",
+    "Built ItemImportService using invokeAll",
+    "Implemented gp/sp/cp price conversion logic",
+    "Created unit tests for calculatePrice"
+  ],
+  "technicalFocus": [
+    "External API integration",
+    "Jackson JSON mapping",
+    "ExecutorService and Callable",
+    "Separation of concerns",
+    "Unit testing"
+  ],
+  "challenges": [
+    "Mapping nested JSON structures",
+    "Keeping concurrency aligned with course material",
+    "Preventing HTTP dependency in unit tests"
+  ],
+  "solutions": [
+    "Separated list and detail DTOs",
+    "Used ExecutorService instead of CompletableFuture chains",
+    "Injected dependencies for better testability",
+    "Isolated price calculation logic"
+  ],
+  "reflection": "Separating HTTP logic from business logic improved clarity and maintainability. The current design supports future persistence and expansion.",
+  "nextSteps": [
+    "Map DTOs to entities",
+    "Implement category upsert logic",
+    "Persist imported items via DAO",
+    "Add integration tests"
+  ]
+}
