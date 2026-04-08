@@ -57,7 +57,7 @@ public class UserServiceImpl extends AbstractService<CreateUserDTO, UpdateUserDT
         if (dto.username() != null && !dto.username().equals(user.getUsername()) && userDAO.existsByUsername(dto.username())) {
             throw new ApiException(409, "Username already exists");
         }
-
+        if (dto.username() != null) {user.setUsername(dto.username()); }
         if (dto.password() != null) {user.setPasswordHash(passwordService.hash(dto.password())); }
         if (dto.wallet() != null) {user.setWallet(dto.wallet()); }
         if (dto.role() != null) {user.setRole(dto.role()); }

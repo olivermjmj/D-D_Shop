@@ -1,11 +1,14 @@
 package app;
 
+import app.config.ThreadPoolConfig;
 import app.controllers.*;
 import io.javalin.Javalin;
 
 public class Main {
 
     public static void main(String[] args) {
+
+        Runtime.getRuntime().addShutdownHook(new Thread(ThreadPoolConfig::shutdown));
 
         Javalin app = Javalin.create(config -> {
             config.showJavalinBanner = false;
@@ -27,5 +30,7 @@ public class Main {
         StockChangeController.addRoutes(app);
         AddressController.addRoutes(app);
         OrderItemController.addRoutes(app);
+
+        ThreadPoolConfig.getExecutor().shutdown();
     }
 }
