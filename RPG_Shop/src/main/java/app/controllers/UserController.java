@@ -12,7 +12,6 @@ public class UserController {
     private static final UserServiceImpl userService = new UserServiceImpl();
 
     public static void addRoutes(Javalin app) {
-
         app.get("/users", UserController::getAll);
         app.get("/users/{id}", UserController::getById);
         app.post("/users", UserController::create);
@@ -24,22 +23,30 @@ public class UserController {
 
     public static void getAll(Context ctx) {
 
-        ctx.json(userService.getAll());
+        ctx.future(() ->
+                userService.getAllAsync()
+                        .thenAccept(ctx::json)
+        );
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
-        ctx.json(userService.getById(id).orElseThrow(() -> new ApiException(404, "User not found"))
-        );
+        ctx.future(() -> userService.getByIdAsync(id)
+                .thenAccept(user -> ctx.json(user.orElseThrow(() -> new ApiException(404, "User not found")))));
     }
 
     public static void create(Context ctx) {
 
         CreateUserDTO dto = ctx.bodyAsClass(CreateUserDTO.class);
 
-        ctx.status(201).json(userService.create(dto));
+        ctx.future(() -> userService.createAsync(dto)
+                        .thenAccept(user -> {
+                            ctx.status(201);
+                            ctx.json(user);
+                        })
+        );
     }
 
     public static void update(Context ctx) {
@@ -47,19 +54,26 @@ public class UserController {
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateUserDTO dto = ctx.bodyAsClass(UpdateUserDTO.class);
 
-        ctx.json(userService.update(id, dto));
+        ctx.future(() -> userService.updateAsync(id, dto)
+                        .thenAccept(ctx::json)
+        );
     }
 
     public static void delete(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        userService.delete(id);
 
-        ctx.status(204);
+        ctx.future(() -> userService.deleteAsync(id)
+                        .thenRun(() -> ctx.status(204))
+        );
     }
 
     public static void existsByEmail(Context ctx) {
 
-        ctx.json(userService.existsByEmail(ctx.pathParam("email")));
+        String email = ctx.pathParam("email");
+
+        ctx.future(() -> userService.existsByEmailAsync(email)
+                        .thenAccept(ctx::json)
+        );
     }
 }

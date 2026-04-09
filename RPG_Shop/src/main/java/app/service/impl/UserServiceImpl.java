@@ -1,5 +1,6 @@
 package app.service.impl;
 
+import app.config.ThreadPoolConfig;
 import app.dao.UserDAO;
 import app.dto.user.CreateUserDTO;
 import app.dto.user.UpdateUserDTO;
@@ -10,6 +11,8 @@ import app.exceptions.ApiException;
 import app.service.security.PasswordService;
 
 import java.math.BigDecimal;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 public class UserServiceImpl extends AbstractService<CreateUserDTO, UpdateUserDTO, UserResponseDTO, User, Integer> {
 
@@ -17,8 +20,12 @@ public class UserServiceImpl extends AbstractService<CreateUserDTO, UpdateUserDT
     private final PasswordService passwordService;
 
     public UserServiceImpl() {
-        super(new UserDAO(), UserResponseDTO::fromEntity);
-        this.userDAO = (UserDAO) dao;
+        this(new UserDAO(), ThreadPoolConfig.getExecutor());
+    }
+
+    public UserServiceImpl(UserDAO userDAO, ExecutorService executorService) {
+        super(userDAO, UserResponseDTO::fromEntity, executorService);
+        this.userDAO = userDAO;
         this.passwordService = new PasswordService();
     }
 
@@ -65,7 +72,14 @@ public class UserServiceImpl extends AbstractService<CreateUserDTO, UpdateUserDT
         return user;
     }
 
-    public boolean existsByEmail(String email) {
+
+    private boolean existsByEmail(String email) {
+
         return userDAO.getByEmail(email).isPresent();
+    }
+
+    public CompletableFuture<Boolean> existsByEmailAsync(String email) {
+
+        return CompletableFuture.supplyAsync(() -> userDAO.getByEmail(email).isPresent(), executorService);
     }
 }
