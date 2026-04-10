@@ -1,17 +1,15 @@
 package app.controllers;
 
-import app.dao.AdminActionLogDAO;
-import app.entities.AdminActionLog;
-import app.exceptions.DatabaseException;
+import app.dto.adminActionLog.CreateAdminActionLogDTO;
+import app.dto.adminActionLog.UpdateAdminActionLogDTO;
+import app.exceptions.ApiException;
+import app.service.impl.AdminActionLogServiceImpl;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.List;
-import java.util.Optional;
-
 public class AdminActionLogController {
 
-    private static final AdminActionLogDAO logDAO = new AdminActionLogDAO();
+    private static final AdminActionLogServiceImpl adminActionLogService = new AdminActionLogServiceImpl();
 
     public static void addRoutes(Javalin app) {
 
@@ -20,60 +18,63 @@ public class AdminActionLogController {
         app.get("/admin-logs/admin/{adminId}", AdminActionLogController::getAllByAdminId);
 
         app.post("/admin-logs", AdminActionLogController::create);
+        app.put("/admin-logs/{id}", AdminActionLogController::update);
         app.delete("/admin-logs/{id}", AdminActionLogController::delete);
     }
 
     public static void getAll(Context ctx) {
 
-        List<AdminActionLog> logs = logDAO.getAll();
-        ctx.status(200).json(logs);
+        ctx.future(() ->
+                adminActionLogService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        Optional<AdminActionLog> log = logDAO.getById(id);
 
-        if (log.isPresent()) {
-
-            ctx.status(200).json(log.get());
-        } else {
-            ctx.status(404).result("Log not found");
-        }
+        ctx.future(() ->
+                adminActionLogService.getById(id).thenAccept(log ->
+                        ctx.json(log.orElseThrow(() ->
+                                new ApiException(404, "Log not found"))))
+        );
     }
 
     public static void getAllByAdminId(Context ctx) {
 
         int adminId = Integer.parseInt(ctx.pathParam("adminId"));
-        ctx.status(200).json(logDAO.getAllByAdminId(adminId));
+
+        ctx.future(() ->
+                adminActionLogService.getAllByAdminId(adminId).thenAccept(ctx::json));
     }
 
     public static void create(Context ctx) {
-        try {
 
-            AdminActionLog log = ctx.bodyAsClass(AdminActionLog.class);
-            AdminActionLog created = logDAO.create(log);
+        CreateAdminActionLogDTO dto = ctx.bodyAsClass(CreateAdminActionLogDTO.class);
 
-            ctx.status(201).json(created);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not create log");
-        }
+        ctx.future(() ->
+                adminActionLogService.create(dto).thenAccept(log -> {
+
+                    ctx.status(201);
+                    ctx.json(log);
+                })
+        );
+    }
+
+    public static void update(Context ctx) {
+
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        UpdateAdminActionLogDTO dto = ctx.bodyAsClass(UpdateAdminActionLogDTO.class);
+
+        ctx.future(() ->
+                adminActionLogService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            logDAO.deleteById(id);
-
-            ctx.status(204);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not delete log");
-        }
+        ctx.future(() ->
+                adminActionLogService.delete(id).thenRun(() ->
+                        ctx.status(204)));
     }
 }

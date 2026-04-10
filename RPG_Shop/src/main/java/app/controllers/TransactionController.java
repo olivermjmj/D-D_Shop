@@ -1,18 +1,16 @@
 package app.controllers;
 
-import app.dao.TransactionDAO;
-import app.dto.transaction.TransactionResponseDTO;
-import app.entities.Transaction;
+import app.dto.transaction.CreateTransactionDTO;
+import app.dto.transaction.UpdateTransactionDTO;
 import app.entities.enums.TransactionType;
-import app.exceptions.DatabaseException;
+import app.exceptions.ApiException;
+import app.service.impl.TransactionServiceImpl;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.Optional;
-
 public class TransactionController {
 
-    private static final TransactionDAO transactionDAO = new TransactionDAO();
+    private static final TransactionServiceImpl transactionService = new TransactionServiceImpl();
 
     public static void addRoutes(Javalin app) {
 
@@ -29,46 +27,35 @@ public class TransactionController {
 
     public static void getAll(Context ctx) {
 
-        ctx.status(200).json(
-                transactionDAO.getAll().stream()
-                        .map(TransactionResponseDTO::fromEntity)
-                        .toList()
-        );
+        ctx.future(() ->
+                transactionService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        Optional<Transaction> transaction = transactionDAO.getById(id);
 
-        if (transaction.isPresent()) {
-
-            ctx.status(200).json(TransactionResponseDTO.fromEntity(transaction.get()));
-        } else {
-            ctx.status(404).result("Transaction not found");
-        }
+        ctx.future(() ->
+                transactionService.getById(id).thenAccept(transaction ->
+                        ctx.json(transaction.orElseThrow(() ->
+                                new ApiException(404, "Transaction not found"))))
+        );
     }
 
     public static void getAllByUserId(Context ctx) {
 
         int userId = Integer.parseInt(ctx.pathParam("userId"));
 
-        ctx.status(200).json(
-                transactionDAO.getAllByUserId(userId).stream()
-                        .map(TransactionResponseDTO::fromEntity)
-                        .toList()
-        );
+        ctx.future(() ->
+                transactionService.getAllByUserId(userId).thenAccept(ctx::json));
     }
 
     public static void getAllByOrderId(Context ctx) {
 
         int orderId = Integer.parseInt(ctx.pathParam("orderId"));
 
-        ctx.status(200).json(
-                transactionDAO.getAllByOrderId(orderId).stream()
-                        .map(TransactionResponseDTO::fromEntity)
-                        .toList()
-        );
+        ctx.future(() ->
+                transactionService.getAllByOrderId(orderId).thenAccept(ctx::json));
     }
 
     public static void getAllByType(Context ctx) {
@@ -77,61 +64,41 @@ public class TransactionController {
 
             TransactionType type = TransactionType.valueOf(ctx.pathParam("type").toUpperCase());
 
-            ctx.status(200).json(
-                    transactionDAO.getAllByType(type).stream()
-                            .map(TransactionResponseDTO::fromEntity)
-                            .toList()
-            );
+            ctx.future(() ->
+                    transactionService.getAllByType(type).thenAccept(ctx::json));
         } catch (IllegalArgumentException e) {
-            ctx.status(400).result("Invalid transaction type");
+            throw new ApiException(400, "Invalid transaction type");
         }
     }
 
     public static void create(Context ctx) {
 
-        try {
+        CreateTransactionDTO dto = ctx.bodyAsClass(CreateTransactionDTO.class);
 
-            Transaction transaction = ctx.bodyAsClass(Transaction.class);
-            Transaction createdTransaction = transactionDAO.create(transaction);
+        ctx.future(() ->
+                transactionService.create(dto).thenAccept(transaction -> {
 
-            ctx.status(201).json(TransactionResponseDTO.fromEntity(createdTransaction));
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not create transaction");
-        }
+                    ctx.status(201);
+                    ctx.json(transaction);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        UpdateTransactionDTO dto = ctx.bodyAsClass(UpdateTransactionDTO.class);
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            Transaction transaction = ctx.bodyAsClass(Transaction.class);
-            transaction.setId(id);
-
-            Transaction updatedTransaction = transactionDAO.update(transaction);
-
-            ctx.status(200).json(TransactionResponseDTO.fromEntity(updatedTransaction));
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not update transaction");
-        }
+        ctx.future(() ->
+                transactionService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            transactionDAO.deleteById(id);
-
-            ctx.status(204);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not delete transaction");
-        }
+        ctx.future(() ->
+                transactionService.delete(id).thenRun(() ->
+                        ctx.status(204)));
     }
 }

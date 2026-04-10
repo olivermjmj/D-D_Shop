@@ -1,17 +1,15 @@
 package app.controllers;
 
-import app.dao.SupplierDAO;
-import app.entities.Supplier;
-import app.exceptions.DatabaseException;
+import app.dto.supplier.CreateSupplierDTO;
+import app.dto.supplier.UpdateSupplierDTO;
+import app.exceptions.ApiException;
+import app.service.impl.SupplierServiceImpl;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.List;
-import java.util.Optional;
-
 public class SupplierController {
 
-    private static final SupplierDAO supplierDAO = new SupplierDAO();
+    private static final SupplierServiceImpl supplierService = new SupplierServiceImpl();
 
     public static void addRoutes(Javalin app) {
 
@@ -25,67 +23,48 @@ public class SupplierController {
 
     public static void getAll(Context ctx) {
 
-        List<Supplier> suppliers = supplierDAO.getAll();
-        ctx.status(200).json(suppliers);
+        ctx.future(() ->
+                supplierService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
-        Optional<Supplier> supplier = supplierDAO.getById(id);
-        if (supplier.isPresent()) {
-            ctx.status(200).json(supplier.get());
-        } else {
-            ctx.status(404).result("Supplier not found");
-        }
+        ctx.future(() ->
+                supplierService.getById(id).thenAccept(supplier ->
+                        ctx.json(supplier.orElseThrow(() ->
+                                new ApiException(404, "Supplier not found")))));
     }
 
     public static void create(Context ctx) {
 
-        try {
+        CreateSupplierDTO dto = ctx.bodyAsClass(CreateSupplierDTO.class);
 
-            Supplier supplier = ctx.bodyAsClass(Supplier.class);
-            Supplier created = supplierDAO.create(supplier);
+        ctx.future(() ->
+                supplierService.create(dto).thenAccept(supplier -> {
 
-            ctx.status(201).json(created);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not create supplier");
-        }
+                    ctx.status(201);
+                    ctx.json(supplier);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        UpdateSupplierDTO dto = ctx.bodyAsClass(UpdateSupplierDTO.class);
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            Supplier supplier = ctx.bodyAsClass(Supplier.class);
-            supplier.setId(id);
-
-            Supplier updated = supplierDAO.update(supplier);
-
-            ctx.status(200).json(updated);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not update supplier");
-        }
+        ctx.future(() ->
+                supplierService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            supplierDAO.deleteById(id);
-
-            ctx.status(204);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not delete supplier");
-        }
+        ctx.future(() ->
+                supplierService.delete(id).thenRun(() ->
+                        ctx.status(204)));
     }
 }

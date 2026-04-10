@@ -1,18 +1,16 @@
 package app.controllers;
 
-import app.dao.QualityCheckDAO;
-import app.entities.QualityCheck;
+import app.dto.qualityCheck.CreateQualityCheckDTO;
+import app.dto.qualityCheck.UpdateQualityCheckDTO;
 import app.entities.enums.QualityStatus;
-import app.exceptions.DatabaseException;
+import app.exceptions.ApiException;
+import app.service.impl.QualityCheckServiceImpl;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.List;
-import java.util.Optional;
-
 public class QualityCheckController {
 
-    private static final QualityCheckDAO qualityCheckDAO = new QualityCheckDAO();
+    private static final QualityCheckServiceImpl qualityCheckService = new QualityCheckServiceImpl();
 
     public static void addRoutes(Javalin app) {
 
@@ -30,26 +28,26 @@ public class QualityCheckController {
 
     public static void getAll(Context ctx) {
 
-        List<QualityCheck> checks = qualityCheckDAO.getAll();
-        ctx.status(200).json(checks);
+        ctx.future(() ->
+                qualityCheckService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        Optional<QualityCheck> check = qualityCheckDAO.getById(id);
 
-        if (check.isPresent()) {
-            ctx.status(200).json(check.get());
-        } else {
-            ctx.status(404).result("Quality check not found");
-        }
+        ctx.future(() ->
+                qualityCheckService.getById(id).thenAccept(check ->
+                        ctx.json(check.orElseThrow(() ->
+                                new ApiException(404, "Quality check not found")))));
     }
 
     public static void getAllByItemId(Context ctx) {
 
         int itemId = Integer.parseInt(ctx.pathParam("itemId"));
-        ctx.status(200).json(qualityCheckDAO.getAllByItemId(itemId));
+
+        ctx.future(() ->
+                qualityCheckService.getAllByItemId(itemId).thenAccept(ctx::json));
     }
 
     public static void getAllByStatus(Context ctx) {
@@ -57,63 +55,51 @@ public class QualityCheckController {
         try {
 
             QualityStatus status = QualityStatus.valueOf(ctx.pathParam("status").toUpperCase());
-            ctx.status(200).json(qualityCheckDAO.getAllByStatus(status));
+
+            ctx.future(() ->
+                    qualityCheckService.getAllByStatus(status).thenAccept(ctx::json));
         } catch (IllegalArgumentException e) {
-            ctx.status(400).result("Invalid quality status");
+            throw new ApiException(400, "Invalid quality status");
         }
     }
 
     public static void getAllByApprovedById(Context ctx) {
 
         int userId = Integer.parseInt(ctx.pathParam("userId"));
-        ctx.status(200).json(qualityCheckDAO.getAllByApprovedById(userId));
+
+        ctx.future(() ->
+                qualityCheckService.getAllByApprovedById(userId).thenAccept(ctx::json)
+        );
     }
 
     public static void create(Context ctx) {
 
-        try {
+        CreateQualityCheckDTO dto = ctx.bodyAsClass(CreateQualityCheckDTO.class);
 
-            QualityCheck check = ctx.bodyAsClass(QualityCheck.class);
-            QualityCheck created = qualityCheckDAO.create(check);
+        ctx.future(() ->
+                qualityCheckService.create(dto).thenAccept(check -> {
 
-            ctx.status(201).json(created);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not create quality check");
-        }
+                    ctx.status(201);
+                    ctx.json(check);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        UpdateQualityCheckDTO dto = ctx.bodyAsClass(UpdateQualityCheckDTO.class);
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            QualityCheck check = ctx.bodyAsClass(QualityCheck.class);
-            check.setId(id);
-
-            QualityCheck updated = qualityCheckDAO.update(check);
-
-            ctx.status(200).json(updated);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not update quality check");
-        }
+        ctx.future(() ->
+                qualityCheckService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            qualityCheckDAO.deleteById(id);
-
-            ctx.status(204);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not delete quality check");
-        }
+        ctx.future(() ->
+                qualityCheckService.delete(id).thenRun(() ->
+                        ctx.status(204)));
     }
 }

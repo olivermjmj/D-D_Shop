@@ -1,17 +1,15 @@
 package app.controllers;
 
-import app.dao.AddressDAO;
-import app.entities.Address;
-import app.exceptions.DatabaseException;
+import app.dto.address.CreateAddressDTO;
+import app.dto.address.UpdateAddressDTO;
+import app.exceptions.ApiException;
+import app.service.impl.AddressServiceImpl;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.List;
-import java.util.Optional;
-
 public class AddressController {
 
-    private static final AddressDAO addressDAO = new AddressDAO();
+    private static final AddressServiceImpl addressService = new AddressServiceImpl();
 
     public static void addRoutes(Javalin app) {
 
@@ -25,68 +23,47 @@ public class AddressController {
 
     public static void getAll(Context ctx) {
 
-        List<Address> addresses = addressDAO.getAll();
-        ctx.status(200).json(addresses);
+        ctx.future(() ->
+                addressService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        Optional<Address> address = addressDAO.getById(id);
 
-        if (address.isPresent()) {
-
-            ctx.status(200).json(address.get());
-        } else {
-            ctx.status(404).result("Address not found");
-        }
+        ctx.future(() ->
+                addressService.getById(id).thenAccept(address ->
+                        ctx.json(address.orElseThrow(() ->
+                                new ApiException(404, "Address not found")))));
     }
 
     public static void create(Context ctx) {
 
-        try {
+        CreateAddressDTO dto = ctx.bodyAsClass(CreateAddressDTO.class);
 
-            Address address = ctx.bodyAsClass(Address.class);
-            Address created = addressDAO.create(address);
+        ctx.future(() ->
+                addressService.create(dto).thenAccept(address -> {
 
-            ctx.status(201).json(created);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not create address");
-        }
+                    ctx.status(201);
+                    ctx.json(address);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        UpdateAddressDTO dto = ctx.bodyAsClass(UpdateAddressDTO.class);
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            Address address = ctx.bodyAsClass(Address.class);
-            address.setId(id);
-
-            Address updated = addressDAO.update(address);
-
-            ctx.status(200).json(updated);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not update address");
-        }
+        ctx.future(() ->
+                addressService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            addressDAO.deleteById(id);
-
-            ctx.status(204);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not delete address");
-        }
+        ctx.future(() ->
+                addressService.delete(id).thenRun(() -> ctx.status(204)));
     }
 }

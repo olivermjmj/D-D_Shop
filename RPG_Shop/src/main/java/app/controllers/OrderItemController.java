@@ -1,17 +1,15 @@
 package app.controllers;
 
-import app.dao.OrderItemDAO;
-import app.entities.OrderItem;
-import app.exceptions.DatabaseException;
+import app.dto.orderItem.CreateOrderItemDTO;
+import app.dto.orderItem.UpdateOrderItemDTO;
+import app.exceptions.ApiException;
+import app.service.impl.OrderItemServiceImpl;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.List;
-import java.util.Optional;
-
 public class OrderItemController {
 
-    private static final OrderItemDAO orderItemDAO = new OrderItemDAO();
+    private static final OrderItemServiceImpl orderItemService = new OrderItemServiceImpl();
 
     public static void addRoutes(Javalin app) {
 
@@ -28,80 +26,64 @@ public class OrderItemController {
 
     public static void getAll(Context ctx) {
 
-        List<OrderItem> orderItems = orderItemDAO.getAll();
-        ctx.status(200).json(orderItems);
+        ctx.future(() ->
+                orderItemService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        Optional<OrderItem> orderItem = orderItemDAO.getById(id);
 
-        if (orderItem.isPresent()) {
-
-            ctx.status(200).json(orderItem.get());
-        } else {
-            ctx.status(404).result("Order item not found");
-        }
+        ctx.future(() ->
+                orderItemService.getById(id).thenAccept(orderItem ->
+                        ctx.json(orderItem.orElseThrow(() ->
+                                        new ApiException(404, "Order item not found")))));
     }
 
     public static void getAllByOrderId(Context ctx) {
 
         int orderId = Integer.parseInt(ctx.pathParam("orderId"));
-        ctx.status(200).json(orderItemDAO.getAllByOrderId(orderId));
+
+        ctx.future(() ->
+                orderItemService.getAllByOrderId(orderId).thenAccept(ctx::json));
     }
 
     public static void getAllByItemId(Context ctx) {
 
         int itemId = Integer.parseInt(ctx.pathParam("itemId"));
-        ctx.status(200).json(orderItemDAO.getAllByItemId(itemId));
+
+        ctx.future(() ->
+                orderItemService.getAllByItemId(itemId).thenAccept(ctx::json));
     }
 
     public static void create(Context ctx) {
 
-        try {
+        CreateOrderItemDTO dto = ctx.bodyAsClass(CreateOrderItemDTO.class);
 
-            OrderItem orderItem = ctx.bodyAsClass(OrderItem.class);
-            OrderItem created = orderItemDAO.create(orderItem);
+        ctx.future(() ->
+                orderItemService.create(dto).thenAccept(orderItem -> {
 
-            ctx.status(201).json(created);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not create order item");
-        }
+                    ctx.status(201);
+                    ctx.json(orderItem);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        UpdateOrderItemDTO dto = ctx.bodyAsClass(UpdateOrderItemDTO.class);
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            OrderItem orderItem = ctx.bodyAsClass(OrderItem.class);
-            orderItem.setId(id);
-
-            OrderItem updated = orderItemDAO.update(orderItem);
-
-            ctx.status(200).json(updated);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not update order item");
-        }
+        ctx.future(() ->
+                orderItemService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            orderItemDAO.deleteById(id);
-
-            ctx.status(204);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not delete order item");
-        }
+        ctx.future(() ->
+                orderItemService.delete(id).thenRun(() ->
+                        ctx.status(204)));
     }
 }

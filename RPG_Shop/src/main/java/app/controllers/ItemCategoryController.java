@@ -1,17 +1,15 @@
 package app.controllers;
 
-import app.dao.ItemCategoryDAO;
-import app.entities.ItemCategory;
-import app.exceptions.DatabaseException;
+import app.dto.itemCategory.CreateItemCategoryDTO;
+import app.dto.itemCategory.UpdateItemCategoryDTO;
+import app.exceptions.ApiException;
+import app.service.impl.ItemCategoryServiceImpl;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.List;
-import java.util.Optional;
-
 public class ItemCategoryController {
 
-    private static final ItemCategoryDAO itemCategoryDAO = new ItemCategoryDAO();
+    private static final ItemCategoryServiceImpl itemCategoryService = new ItemCategoryServiceImpl();
 
     public static void addRoutes(Javalin app) {
 
@@ -25,68 +23,47 @@ public class ItemCategoryController {
 
     public static void getAll(Context ctx) {
 
-        List<ItemCategory> categories = itemCategoryDAO.getAll();
-        ctx.status(200).json(categories);
+        ctx.future(() -> itemCategoryService.getAll().thenAccept(ctx::json)
+        );
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        Optional<ItemCategory> category = itemCategoryDAO.getById(id);
 
-        if (category.isPresent()) {
-
-            ctx.status(200).json(category.get());
-        } else {
-            ctx.status(404).result("Category not found");
-        }
+        ctx.future(() ->
+                itemCategoryService.getById(id).thenAccept(category ->
+                        ctx.json(category.orElseThrow(() ->
+                                new ApiException(404, "Category not found")))));
     }
 
     public static void create(Context ctx) {
 
-        try {
+        CreateItemCategoryDTO dto = ctx.bodyAsClass(CreateItemCategoryDTO.class);
 
-            ItemCategory category = ctx.bodyAsClass(ItemCategory.class);
-            ItemCategory created = itemCategoryDAO.create(category);
+        ctx.future(() ->
+                itemCategoryService.create(dto).thenAccept(category -> {
 
-            ctx.status(201).json(created);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not create category");
-        }
+                    ctx.status(201);
+                    ctx.json(category);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        UpdateItemCategoryDTO dto = ctx.bodyAsClass(UpdateItemCategoryDTO.class);
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            ItemCategory category = ctx.bodyAsClass(ItemCategory.class);
-            category.setId(id);
-
-            ItemCategory updated = itemCategoryDAO.update(category);
-
-            ctx.status(200).json(updated);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not update category");
-        }
+        ctx.future(() ->
+                itemCategoryService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            itemCategoryDAO.deleteById(id);
-
-            ctx.status(204);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not delete category");
-        }
+        ctx.future(() ->
+                itemCategoryService.delete(id).thenRun(() -> ctx.status(204)));
     }
 }

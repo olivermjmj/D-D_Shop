@@ -1,17 +1,15 @@
 package app.controllers;
 
-import app.dao.DiscountDAO;
-import app.entities.Discount;
-import app.exceptions.DatabaseException;
+import app.dto.discount.CreateDiscountDTO;
+import app.dto.discount.UpdateDiscountDTO;
+import app.exceptions.ApiException;
+import app.service.impl.DiscountServiceImpl;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.List;
-import java.util.Optional;
-
 public class DiscountController {
 
-    private static final DiscountDAO discountDAO = new DiscountDAO();
+    private static final DiscountServiceImpl discountService = new DiscountServiceImpl();
 
     public static void addRoutes(Javalin app) {
 
@@ -25,69 +23,48 @@ public class DiscountController {
 
     public static void getAll(Context ctx) {
 
-        List<Discount> discounts = discountDAO.getAll();
-        ctx.status(200).json(discounts);
+        ctx.future(() ->
+                discountService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        Optional<Discount> discount = discountDAO.getById(id);
 
-        if (discount.isPresent()) {
-
-            ctx.status(200).json(discount.get());
-        } else {
-            ctx.status(404).result("Discount not found");
-        }
+        ctx.future(() ->
+                discountService.getById(id).thenAccept(discount ->
+                        ctx.json(discount.orElseThrow(() ->
+                                new ApiException(404, "Discount not found"))))
+        );
     }
 
     public static void create(Context ctx) {
 
-        try {
+        CreateDiscountDTO dto = ctx.bodyAsClass(CreateDiscountDTO.class);
 
-            Discount discount = ctx.bodyAsClass(Discount.class);
-            Discount created = discountDAO.create(discount);
+        ctx.future(() ->
+                discountService.create(dto).thenAccept(discount -> {
 
-            ctx.status(201).json(created);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not create discount");
-        }
+                    ctx.status(201);
+                    ctx.json(discount);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        UpdateDiscountDTO dto = ctx.bodyAsClass(UpdateDiscountDTO.class);
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            Discount discount = ctx.bodyAsClass(Discount.class);
-            discount.setId(id);
-
-            Discount updated = discountDAO.update(discount);
-
-            ctx.status(200).json(updated);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not update discount");
-        }
+        ctx.future(() ->
+                discountService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            discountDAO.deleteById(id);
-
-            ctx.status(204);
-        } catch (DatabaseException e) {
-
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not delete discount");
-        }
+        ctx.future(() ->
+                discountService.delete(id).thenRun(() -> ctx.status(204)));
     }
 }

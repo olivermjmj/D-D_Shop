@@ -29,42 +29,54 @@ public class ItemController {
 
     public static void getAll(Context ctx) {
 
-        ctx.json(itemService.getAll());
+        ctx.future(() ->
+                itemService.getAll().thenAccept(ctx::json)
+        );
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
-        ctx.json(itemService.getById(id).orElseThrow(() -> new ApiException(404, "Item not found")));
+        ctx.future(() ->
+                itemService.getById(id).thenAccept(item ->
+                        ctx.json(item.orElseThrow(() ->
+                                new ApiException(404, "Item not found"))))
+        );
     }
 
     public static void getAllByCategoryId(Context ctx) {
 
         int categoryId = Integer.parseInt(ctx.pathParam("categoryId"));
 
-        ctx.json(itemService.getAllByCategoryId(categoryId));
+        ctx.future(() ->
+                itemService.getAllByCategoryId(categoryId).thenAccept(ctx::json)
+        );
     }
 
     public static void getAllBySupplierId(Context ctx) {
 
         int supplierId = Integer.parseInt(ctx.pathParam("supplierId"));
 
-        ctx.json(itemService.getAllBySupplierId(supplierId));
+        ctx.future(() ->
+                itemService.getAllBySupplierId(supplierId).thenAccept(ctx::json)
+        );
     }
 
     public static void getAllByExternalSource(Context ctx) {
 
         String externalSource = ctx.pathParam("externalSource");
 
-        ctx.json(itemService.getAllByExternalSource(externalSource));
+        ctx.future(() ->
+                itemService.getAllByExternalSource(externalSource).thenAccept(ctx::json));
     }
 
     public static void getByExternalId(Context ctx) {
 
         String externalId = ctx.pathParam("externalId");
 
-        ctx.json(itemService.getByExternalId(externalId));
+        ctx.future(() ->
+                itemService.getByExternalId(externalId).thenAccept(ctx::json));
     }
 
     public static void getByExternalIdAndSource(Context ctx) {
@@ -72,29 +84,37 @@ public class ItemController {
         String externalId = ctx.pathParam("externalId");
         String externalSource = ctx.pathParam("externalSource");
 
-        ctx.json(itemService.getByExternalIdAndSource(externalId, externalSource));
+        ctx.future(() ->
+                itemService.getByExternalIdAndSource(externalId, externalSource).thenAccept(ctx::json));
     }
 
     public static void create(Context ctx) {
 
         CreateItemDTO dto = ctx.bodyAsClass(CreateItemDTO.class);
 
-        ctx.status(201).json(itemService.create(dto));
+        ctx.future(() ->
+                itemService.create(dto).thenAccept(item -> {
+
+                    ctx.status(201);
+                    ctx.json(item);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-
         UpdateItemDTO dto = ctx.bodyAsClass(UpdateItemDTO.class);
-        ctx.json(itemService.update(id, dto));
+
+        ctx.future(() ->
+                itemService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
-        itemService.delete(id);
-        ctx.status(204);
+        ctx.future(() ->
+                itemService.delete(id).thenRun(() -> ctx.status(204)));
     }
 }

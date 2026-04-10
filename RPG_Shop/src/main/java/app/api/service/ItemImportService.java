@@ -4,10 +4,8 @@ import app.api.client.Dnd5eClient;
 import app.api.dto.EquipmentListDTO;
 import app.api.dto.ImportedItemDTO;
 import app.config.ThreadPoolConfig;
-import app.exceptions.ApiImportException;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 
 import java.util.concurrent.*;
@@ -35,10 +33,7 @@ public class ItemImportService {
             return CompletableFuture.completedFuture(List.of());
         }
 
-        int limit = Math.min(20, equipmentListDTO.getResults().size());
-
         List<CompletableFuture<ImportedItemDTO>> futures = equipmentListDTO.getResults()
-                .subList(0, limit)
                 .stream()
                 .map(itemRef -> CompletableFuture.supplyAsync(() -> {
 

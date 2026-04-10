@@ -28,26 +28,35 @@ public class OrderController {
 
     public static void getAll(Context ctx) {
 
-        ctx.json(orderService.getAll());
+        ctx.future(() ->
+                orderService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        ctx.json(orderService.getById(id)
-                .orElseThrow(() -> new ApiException(404, "Order not found")));
+
+        ctx.future(() ->
+                orderService.getById(id).thenAccept(order ->
+                        ctx.json(order.orElseThrow(() ->
+                                        new ApiException(404, "Order not found"))))
+        );
     }
 
     public static void getByIdWithItems(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        ctx.json(orderService.getByIdWithItems(id));
+
+        ctx.future(() ->
+                orderService.getByIdWithItems(id).thenAccept(ctx::json));
     }
 
     public static void getAllByUserId(Context ctx) {
 
         int userId = Integer.parseInt(ctx.pathParam("userId"));
-        ctx.json(orderService.getAllByUserId(userId));
+
+        ctx.future(() ->
+                orderService.getAllByUserId(userId).thenAccept(ctx::json));
     }
 
     public static void getAllByStatus(Context ctx) {
@@ -55,7 +64,9 @@ public class OrderController {
         try {
 
             OrderStatus status = OrderStatus.valueOf(ctx.pathParam("status").toUpperCase());
-            ctx.json(orderService.getAllByStatus(status));
+
+            ctx.future(() ->
+                    orderService.getAllByStatus(status).thenAccept(ctx::json));
         } catch (IllegalArgumentException e) {
             throw new ApiException(400, "Invalid order status");
         }
@@ -64,26 +75,38 @@ public class OrderController {
     public static void getTotalPriceByOrderId(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        ctx.json(orderService.getTotalPriceByOrderId(id));
+
+        ctx.future(() ->
+                orderService.getTotalPriceByOrderId(id).thenAccept(ctx::json));
     }
 
     public static void create(Context ctx) {
 
         CreateOrderDTO dto = ctx.bodyAsClass(CreateOrderDTO.class);
-        ctx.status(201).json(orderService.create(dto));
+
+        ctx.future(() ->
+                orderService.create(dto).thenAccept(order -> {
+
+                    ctx.status(201);
+                    ctx.json(order);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateOrderDTO dto = ctx.bodyAsClass(UpdateOrderDTO.class);
-        ctx.json(orderService.update(id, dto));
+
+        ctx.future(() ->
+                orderService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        orderService.delete(id);
-        ctx.status(204);
+
+        ctx.future(() ->
+                orderService.delete(id).thenRun(() -> ctx.status(204)));
     }
 }

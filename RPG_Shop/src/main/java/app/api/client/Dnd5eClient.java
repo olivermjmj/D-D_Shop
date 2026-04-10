@@ -4,6 +4,7 @@ import app.api.dto.EquipmentListDTO;
 import app.api.dto.ImportedItemDTO;
 import app.exceptions.ApiImportException;
 import app.utils.HttpClientHelper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Dnd5eClient {
@@ -23,8 +24,8 @@ public class Dnd5eClient {
             String json = HttpClientHelper.get(BASE_URL + "/api/2014/equipment");
 
             return mapper.readValue(json, EquipmentListDTO.class);
-        } catch (Exception e) {
-            throw new ApiImportException("Failed to fetch equipment list", e);
+        } catch (JsonProcessingException e) {
+            throw new ApiImportException("Failed to parse equipment list", e);
         }
     }
 
@@ -38,8 +39,8 @@ public class Dnd5eClient {
             dto.setExternalSource("DND5E");
 
             return dto;
-        } catch (Exception e) {
-            throw new ApiImportException("Failed to fetch equipment detail", e);
+        } catch (JsonProcessingException e) {
+            throw new ApiImportException("Failed to parse equipment detail", e);
         }
     }
 }

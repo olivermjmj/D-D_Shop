@@ -1,17 +1,17 @@
 package app.controllers;
 
-import app.dao.InventoryDAO;
-import app.entities.Inventory;
-import app.exceptions.DatabaseException;
+import app.dto.inventory.CreateInventoryDTO;
+import app.dto.inventory.UpdateInventoryDTO;
+import app.exceptions.ApiException;
+import app.service.impl.InventoryServiceImpl;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 
 public class InventoryController {
 
-    private static final InventoryDAO inventoryDAO = new InventoryDAO();
+    private static final InventoryServiceImpl inventoryService = new InventoryServiceImpl();
 
     public static void addRoutes(Javalin app) {
 
@@ -22,84 +22,81 @@ public class InventoryController {
         app.post("/inventories", InventoryController::create);
         app.put("/inventories/{id}", InventoryController::update);
         app.delete("/inventories/{id}", InventoryController::delete);
+
+        app.post("/inventories/item/{itemId}/add-stock", InventoryController::addStock);
+        app.post("/inventories/item/{itemId}/remove-stock", InventoryController::removeStock);
     }
 
     public static void getAll(Context ctx) {
 
-        List<Inventory> inventories = inventoryDAO.getAll();
-        ctx.status(200).json(inventories);
+        ctx.future(() ->
+                inventoryService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
-        Optional<Inventory> inventory = inventoryDAO.getById(id);
 
-        if (inventory.isPresent()) {
-
-            ctx.status(200).json(inventory.get());
-        } else {
-            ctx.status(404).result("Inventory not found");
-        }
+        ctx.future(() ->
+                inventoryService.getById(id).thenAccept(inventory ->
+                        ctx.json(inventory.orElseThrow(() ->
+                                new ApiException(404, "Inventory not found"))))
+        );
     }
 
     public static void getByItemId(Context ctx) {
 
         int itemId = Integer.parseInt(ctx.pathParam("itemId"));
-        Optional<Inventory> inventory = inventoryDAO.getByItemId(itemId);
 
-        if (inventory.isPresent()) {
-
-            ctx.status(200).json(inventory.get());
-        } else {
-            ctx.status(404).result("Inventory not found");
-        }
+        ctx.future(() ->
+                inventoryService.getByItemId(itemId).thenAccept(ctx::json));
     }
 
     public static void create(Context ctx) {
 
-        try {
+        CreateInventoryDTO dto = ctx.bodyAsClass(CreateInventoryDTO.class);
 
-            Inventory inventory = ctx.bodyAsClass(Inventory.class);
-            Inventory created = inventoryDAO.create(inventory);
+        ctx.future(() ->
+                inventoryService.create(dto).thenAccept(inventory -> {
 
-            ctx.status(201).json(created);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not create inventory");
-        }
+                    ctx.status(201);
+                    ctx.json(inventory);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        UpdateInventoryDTO dto = ctx.bodyAsClass(UpdateInventoryDTO.class);
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            Inventory inventory = ctx.bodyAsClass(Inventory.class);
-            inventory.setId(id);
-            Inventory updated = inventoryDAO.update(inventory);
-
-            ctx.status(200).json(updated);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not update inventory");
-        }
+        ctx.future(() ->
+                inventoryService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            inventoryDAO.deleteById(id);
+        ctx.future(() ->
+                inventoryService.delete(id).thenRun(() -> ctx.status(204)));
+    }
 
-            ctx.status(204);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not delete inventory");
-        }
+    public static void addStock(Context ctx) {
+
+        int itemId = Integer.parseInt(ctx.pathParam("itemId"));
+        int amount = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("amount")));
+
+        ctx.future(() ->
+                inventoryService.addStock(itemId, amount).thenAccept(ctx::json));
+    }
+
+    public static void removeStock(Context ctx) {
+
+        int itemId = Integer.parseInt(ctx.pathParam("itemId"));
+        int amount = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("amount")));
+
+        ctx.future(() ->
+                inventoryService.removeStock(itemId, amount).thenAccept(ctx::json));
     }
 }

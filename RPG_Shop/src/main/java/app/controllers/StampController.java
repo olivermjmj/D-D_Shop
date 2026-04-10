@@ -1,17 +1,15 @@
 package app.controllers;
 
-import app.dao.StampDAO;
-import app.entities.Stamp;
-import app.exceptions.DatabaseException;
+import app.dto.stamp.CreateStampDTO;
+import app.dto.stamp.UpdateStampDTO;
+import app.exceptions.ApiException;
+import app.service.impl.StampServiceImpl;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
-import java.util.List;
-import java.util.Optional;
-
 public class StampController {
 
-    private static final StampDAO stampDAO = new StampDAO();
+    private static final StampServiceImpl stampService = new StampServiceImpl();
 
     public static void addRoutes(Javalin app) {
 
@@ -25,66 +23,47 @@ public class StampController {
 
     public static void getAll(Context ctx) {
 
-        List<Stamp> stamps = stampDAO.getAll();
-        ctx.status(200).json(stamps);
+        ctx.future(() ->
+                stampService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
-        Optional<Stamp> stamp = stampDAO.getById(id);
-        if (stamp.isPresent()) {
-            ctx.status(200).json(stamp.get());
-        } else {
-            ctx.status(404).result("Stamp not found");
-        }
+        ctx.future(() ->
+                stampService.getById(id).thenAccept(stamp ->
+                        ctx.json(stamp.orElseThrow(() ->
+                                new ApiException(404, "Stamp not found")))));
     }
 
     public static void create(Context ctx) {
 
-        try {
-            Stamp stamp = ctx.bodyAsClass(Stamp.class);
-            Stamp created = stampDAO.create(stamp);
+        CreateStampDTO dto = ctx.bodyAsClass(CreateStampDTO.class);
 
-            ctx.status(201).json(created);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not create stamp");
-        }
+        ctx.future(() ->
+                stampService.create(dto).thenAccept(stamp -> {
+
+                    ctx.status(201);
+                    ctx.json(stamp);
+                })
+        );
     }
 
     public static void update(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
+        UpdateStampDTO dto = ctx.bodyAsClass(UpdateStampDTO.class);
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            Stamp stamp = ctx.bodyAsClass(Stamp.class);
-            stamp.setId(id);
-
-            Stamp updated = stampDAO.update(stamp);
-
-            ctx.status(200).json(updated);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not update stamp");
-        }
+        ctx.future(() ->
+                stampService.update(id, dto).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
 
-        try {
+        int id = Integer.parseInt(ctx.pathParam("id"));
 
-            int id = Integer.parseInt(ctx.pathParam("id"));
-            stampDAO.deleteById(id);
-
-            ctx.status(204);
-        } catch (DatabaseException e) {
-            ctx.status(400).result(e.getMessage());
-        } catch (Exception e) {
-            ctx.status(500).result("Could not delete stamp");
-        }
+        ctx.future(() ->
+                stampService.delete(id).thenRun(() -> ctx.status(204)));
     }
 }
