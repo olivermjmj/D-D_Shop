@@ -1,10 +1,10 @@
 package app.dao;
 
+import app.config.HibernateConfig;
 import app.entities.User;
 import app.entities.enums.Role;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
+import app.exceptions.DatabaseException;
+import app.utils.EMF;
 import org.junit.jupiter.api.*;
 
 import java.util.List;
@@ -12,136 +12,215 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class UserDAOTest {
 
-    /*
-
-    private static EntityManagerFactory emf;
     private UserDAO userDAO;
 
     @BeforeAll
-    static void init() {
-        emf = Persistence.createEntityManagerFactory("test-pu");
-    }
+    void setUpAll() {
 
-    @AfterAll
-    static void close() {
-        emf.close();
+        HibernateConfig.setTest(true);
+        userDAO = new UserDAO();
     }
 
     @BeforeEach
-    void setup() {
-        userDAO = new UserDAO(emf);
-        clearDatabase();
+    void setUp() throws DatabaseException {
+        userDAO.deleteAll();
     }
 
-    private void clearDatabase() {
-        EntityManager em = emf.createEntityManager();
-        em.getTransaction().begin();
-        em.createQuery("DELETE FROM User").executeUpdate();
-        em.getTransaction().commit();
-        em.close();
-    }
-
-    private User createUser(String email, String username, Role role) {
-        return userDAO.create(new User(email, "Test", username, "hash", role));
+    @AfterAll
+    void tearDownAll() {
+        EMF.close();
     }
 
     @Test
-    void create() {
-        User user = createUser("a@test.dk", "user1", Role.USER);
-        assertNotEquals(0, user.getId());
+    void create_shouldPersistUser() throws DatabaseException {
+
+        User user = new User("test@mail.com", "Test User", "testuser", "hashedpw", Role.USER);
+
+        User created = userDAO.create(user);
+
+        assertNotNull(created);
+        assertTrue(created.getId() > 0);
+        assertEquals("test@mail.com", created.getEmail());
     }
 
     @Test
-    void getAll() {
-        createUser("a@test.dk", "u1", Role.USER);
-        createUser("b@test.dk", "u2", Role.USER);
+    void getById_shouldReturnUser_whenUserExists() throws DatabaseException {
+
+        User user = new User("test@mail.com", "Test User", "testuser", "hashedpw", Role.USER);
+        User created = userDAO.create(user);
+
+        Optional<User> found = userDAO.getById(created.getId());
+
+        assertTrue(found.isPresent());
+        assertEquals(created.getId(), found.get().getId());
+        assertEquals("test@mail.com", found.get().getEmail());
+    }
+
+    @Test
+    void getById_shouldReturnEmpty_whenUserDoesNotExist() {
+
+        Optional<User> found = userDAO.getById(9999);
+
+        assertTrue(found.isEmpty());
+    }
+
+    @Test
+    void getAll_shouldReturnAllUsers() throws DatabaseException {
+
+        userDAO.create(new User("a@mail.com", "User A", "usera", "pw1", Role.USER));
+        userDAO.create(new User("b@mail.com", "User B", "userb", "pw2", Role.ADMIN));
 
         List<User> users = userDAO.getAll();
+
         assertEquals(2, users.size());
     }
 
     @Test
-    void getById() {
-        User user = createUser("c@test.dk", "u3", Role.USER);
+    void update_shouldUpdateUser() throws DatabaseException {
 
-        Optional<User> found = userDAO.getById(user.getId());
+        User user = new User("test@mail.com", "Test User", "testuser", "hashedpw", Role.USER);
+        User created = userDAO.create(user);
+
+        created.setName("Updated Name");
+        created.setEmail("updated@mail.com");
+
+        User updated = userDAO.update(created);
+
+        assertEquals("Updated Name", updated.getName());
+        assertEquals("updated@mail.com", updated.getEmail());
+    }
+
+    @Test
+    void deleteById_shouldReturnTrue_whenUserExists() throws DatabaseException {
+
+        User user = new User("test@mail.com", "Test User", "testuser", "hashedpw", Role.USER);
+        User created = userDAO.create(user);
+
+        boolean deleted = userDAO.deleteById(created.getId());
+
+        assertTrue(deleted);
+        assertTrue(userDAO.getById(created.getId()).isEmpty());
+    }
+
+    @Test
+    void deleteById_shouldReturnFalse_whenUserDoesNotExist() throws DatabaseException {
+
+        boolean deleted = userDAO.deleteById(9999);
+
+        assertFalse(deleted);
+    }
+
+    @Test
+    void deleteAll_shouldRemoveAllUsers() throws DatabaseException {
+
+        userDAO.create(new User("a@mail.com", "User A", "usera", "pw1", Role.USER));
+        userDAO.create(new User("b@mail.com", "User B", "userb", "pw2", Role.ADMIN));
+
+        userDAO.deleteAll();
+
+        List<User> users = userDAO.getAll();
+        assertTrue(users.isEmpty());
+    }
+
+    @Test
+    void countByRole_shouldReturnCorrectCount() throws DatabaseException {
+
+        userDAO.create(new User("a@mail.com", "User A", "usera", "pw1", Role.USER));
+        userDAO.create(new User("b@mail.com", "User B", "userb", "pw2", Role.USER));
+        userDAO.create(new User("c@mail.com", "User C", "userc", "pw3", Role.ADMIN));
+
+        long count = userDAO.countByRole(Role.USER);
+
+        assertEquals(2, count);
+    }
+
+    @Test
+    void getAllByRole_shouldReturnMatchingUsers() throws DatabaseException {
+
+        userDAO.create(new User("a@mail.com", "User A", "usera", "pw1", Role.USER));
+        userDAO.create(new User("b@mail.com", "User B", "userb", "pw2", Role.ADMIN));
+        userDAO.create(new User("c@mail.com", "User C", "userc", "pw3", Role.USER));
+
+        List<User> customers = userDAO.getAllByRole(Role.USER);
+
+        assertEquals(2, customers.size());
+        assertTrue(customers.stream().allMatch(user -> user.getRole() == Role.USER));
+    }
+
+    @Test
+    void existsByUsername_shouldReturnTrue_whenUsernameExists() throws DatabaseException {
+
+        userDAO.create(new User("test@mail.com", "Test User", "testuser", "hashedpw", Role.USER));
+
+        boolean exists = userDAO.existsByUsername("testuser");
+
+        assertTrue(exists);
+    }
+
+    @Test
+    void existsByUsername_shouldReturnFalse_whenUsernameDoesNotExist() {
+
+        boolean exists = userDAO.existsByUsername("unknown");
+
+        assertFalse(exists);
+    }
+
+    @Test
+    void existsByEmail_shouldReturnTrue_whenEmailExists() throws DatabaseException {
+
+        userDAO.create(new User("test@mail.com", "Test User", "testuser", "hashedpw", Role.USER));
+
+        boolean exists = userDAO.existsByEmail("test@mail.com");
+
+        assertTrue(exists);
+    }
+
+    @Test
+    void existsByEmail_shouldReturnFalse_whenEmailDoesNotExist() {
+
+        boolean exists = userDAO.existsByEmail("unknown@mail.com");
+
+        assertFalse(exists);
+    }
+
+    @Test
+    void getByUsername_shouldReturnUser_whenUsernameExists() throws DatabaseException {
+
+        userDAO.create(new User("test@mail.com", "Test User", "testuser", "hashedpw", Role.USER));
+
+        Optional<User> found = userDAO.getByUsername("testuser");
+
         assertTrue(found.isPresent());
+        assertEquals("testuser", found.get().getUsername());
     }
 
     @Test
-    void update() {
-        User user = createUser("d@test.dk", "u4", Role.USER);
-        user.setName("Updated");
+    void getByUsername_shouldReturnEmpty_whenUsernameDoesNotExist() {
 
-        userDAO.update(user);
+        Optional<User> found = userDAO.getByUsername("unknown");
 
-        Optional<User> updated = userDAO.getById(user.getId());
-        assertEquals("Updated", updated.get().getName());
+        assertTrue(found.isEmpty());
     }
 
     @Test
-    void delete() {
-        User user = createUser("e@test.dk", "u5", Role.USER);
+    void getByEmail_shouldReturnUser_whenEmailExists() throws DatabaseException {
 
-        userDAO.delete(user);
+        userDAO.create(new User("test@mail.com", "Test User", "testuser", "hashedpw", Role.USER));
 
-        Optional<User> deleted = userDAO.getById(user.getId());
-        assertTrue(deleted.isEmpty());
-    }
+        Optional<User> found = userDAO.getByEmail("test@mail.com");
 
-    @Test
-    void existsByUsername() {
-        createUser("f@test.dk", "uniqueUser", Role.USER);
-
-        assertTrue(userDAO.existsByUsername("uniqueUser"));
-        assertFalse(userDAO.existsByUsername("noUser"));
-    }
-
-    @Test
-    void existsByEmail() {
-        createUser("g@test.dk", "u7", Role.USER);
-
-        assertTrue(userDAO.existsByEmail("g@test.dk"));
-        assertFalse(userDAO.existsByEmail("none@test.dk"));
-    }
-
-    @Test
-    void getByUsername() {
-        createUser("h@test.dk", "lookupUser", Role.USER);
-
-        Optional<User> found = userDAO.getByUsername("lookupUser");
         assertTrue(found.isPresent());
+        assertEquals("test@mail.com", found.get().getEmail());
     }
 
     @Test
-    void getByEmail() {
-        createUser("i@test.dk", "u9", Role.USER);
+    void getByEmail_shouldReturnEmpty_whenEmailDoesNotExist() {
 
-        Optional<User> found = userDAO.getByEmail("i@test.dk");
-        assertTrue(found.isPresent());
+        Optional<User> found = userDAO.getByEmail("unknown@mail.com");
+
+        assertTrue(found.isEmpty());
     }
-
-    @Test
-    void getAllByRole() {
-        createUser("j@test.dk", "u10", Role.USER);
-        createUser("k@test.dk", "u11", Role.ADMIN);
-
-        List<User> users = userDAO.getAllByRole(Role.USER);
-        assertEquals(1, users.size());
-        assertEquals(Role.USER, users.get(0).getRole());
-    }
-
-    @Test
-    void countByRole() {
-        createUser("l@test.dk", "u12", Role.USER);
-        createUser("m@test.dk", "u13", Role.USER);
-        createUser("n@test.dk", "u14", Role.ADMIN);
-
-        assertEquals(2, userDAO.countByRole(Role.USER));
-        assertEquals(1, userDAO.countByRole(Role.ADMIN));
-    }
-
-     */
 }

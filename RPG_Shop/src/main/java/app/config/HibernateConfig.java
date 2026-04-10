@@ -42,18 +42,20 @@ public class HibernateConfig {
     // IMPORTANT: Add Entity classes here for them to be registered with Hibernate
     private static void getAnnotationConfiguration(Configuration configuration) {
 
-        configuration.addAnnotatedClass(User.class);
-        configuration.addAnnotatedClass(Item.class);
-        configuration.addAnnotatedClass(ItemCategory.class);
+        configuration.addAnnotatedClass(Address.class);
+        configuration.addAnnotatedClass(AdminActionLog.class);
+        configuration.addAnnotatedClass(Discount.class);
         configuration.addAnnotatedClass(Inventory.class);
+        configuration.addAnnotatedClass(ItemCategory.class);
+        configuration.addAnnotatedClass(Item.class);
         configuration.addAnnotatedClass(Order.class);
         configuration.addAnnotatedClass(OrderItem.class);
-        configuration.addAnnotatedClass(Transaction.class);
-        configuration.addAnnotatedClass(Discount.class);
-        configuration.addAnnotatedClass(Stamp.class);
         configuration.addAnnotatedClass(QualityCheck.class);
+        configuration.addAnnotatedClass(Stamp.class);
         configuration.addAnnotatedClass(StockChange.class);
-        configuration.addAnnotatedClass(AdminActionLog.class);
+        configuration.addAnnotatedClass(Supplier.class);
+        configuration.addAnnotatedClass(Transaction.class);
+        configuration.addAnnotatedClass(User.class);
     }
 
     private static EntityManagerFactory createEMF(boolean forTest) {

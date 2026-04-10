@@ -1,23 +1,31 @@
 package app.utils;
 
+import app.config.HibernateConfig;
 import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
-
-
-//Lombok getter won't work, since it cannot touch static fields
 
 public class EMF {
 
-    private static final EntityManagerFactory emf = Persistence.createEntityManagerFactory("poems");
-
     public static EntityManagerFactory get() {
-        return emf;
+
+        return HibernateConfig.getEntityManagerFactory();
+    }
+
+    public static EntityManagerFactory getTestEmf() {
+
+        return HibernateConfig.getEntityManagerFactoryForTest();
     }
 
     public static void close() {
 
+        EntityManagerFactory emf = HibernateConfig.getEntityManagerFactory();
         if (emf != null && emf.isOpen()) {
             emf.close();
+        }
+
+        EntityManagerFactory testEmf = HibernateConfig.getEntityManagerFactoryForTest();
+
+        if (testEmf != null && testEmf.isOpen()) {
+            testEmf.close();
         }
     }
 }
