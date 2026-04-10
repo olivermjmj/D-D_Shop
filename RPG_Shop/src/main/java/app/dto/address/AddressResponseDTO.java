@@ -1,8 +1,8 @@
-package app.dto;
+package app.dto.address;
 
 import app.entities.Address;
 
-public record AddressDTO(
+public record AddressResponseDTO(
 
         int id,
         String street,
@@ -10,10 +10,9 @@ public record AddressDTO(
         String city,
         String country
 ) {
-    public static AddressDTO fromEntity(Address address) {
+    public static AddressResponseDTO fromEntity(Address address) {
 
-        return new AddressDTO(
-
+        return new AddressResponseDTO(
                 address.getId(),
                 address.getStreet(),
                 address.getPostalCode(),

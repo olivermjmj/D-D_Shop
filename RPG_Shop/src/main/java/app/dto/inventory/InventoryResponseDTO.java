@@ -1,17 +1,16 @@
-package app.dto;
+package app.dto.inventory;
 
 import app.entities.Inventory;
 
-public record InventoryDTO(
+public record InventoryResponseDTO(
 
         int id,
         int itemId,
         int quantity
 ) {
-    public static InventoryDTO fromEntity(Inventory inventory) {
+    public static InventoryResponseDTO fromEntity(Inventory inventory) {
 
-        return new InventoryDTO(
-
+        return new InventoryResponseDTO(
                 inventory.getId(),
                 inventory.getItem().getId(),
                 inventory.getQuantity()

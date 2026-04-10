@@ -29,78 +29,63 @@ public abstract class AbstractService<CreateDTO, UpdateDTO, ResponseDTO, T, ID> 
     protected abstract T updateDtoToEntity(T entity, UpdateDTO dto);
 
     @Override
-    public ResponseDTO create(CreateDTO dto) {
+    public CompletableFuture<ResponseDTO> create(CreateDTO dto) {
 
-        try {
+        return CompletableFuture.supplyAsync(() -> {
 
-            T entity = createDtoToEntity(dto);
-            return toResponseDTO.apply(dao.create(entity));
-        } catch (DatabaseException e) {
-            throw new RuntimeException(e);
-        }
-    }
+            try {
 
-    public CompletableFuture<ResponseDTO> createAsync(CreateDTO dto) {
+                T entity = createDtoToEntity(dto);
 
-        return CompletableFuture.supplyAsync(() -> create(dto), executorService);
-    }
-
-    @Override
-    public List<ResponseDTO> getAll() {
-
-        return dao.getAll()
-                .stream()
-                .map(toResponseDTO)
-                .toList();
-    }
-
-    public CompletableFuture<List<ResponseDTO>> getAllAsync() {
-
-        return CompletableFuture.supplyAsync(this::getAll, executorService);
+                return toResponseDTO.apply(dao.create(entity));
+            } catch (DatabaseException e) {
+                throw new RuntimeException(e);
+            }
+        }, executorService);
     }
 
     @Override
-    public Optional<ResponseDTO> getById(ID id) {
-
-        return dao.getById(id).map(toResponseDTO);
-    }
-
-    public CompletableFuture<Optional<ResponseDTO>> getByIdAsync(ID id) {
-
-        return CompletableFuture.supplyAsync(() -> getById(id), executorService);
+    public CompletableFuture<List<ResponseDTO>> getAll() {
+        return CompletableFuture.supplyAsync(() -> dao.getAll()
+                                .stream()
+                                .map(toResponseDTO)
+                                .toList(), executorService);
     }
 
     @Override
-    public ResponseDTO update(ID id, UpdateDTO dto) {
+    public CompletableFuture<Optional<ResponseDTO>> getById(ID id) {
 
-        try {
-
-            T entity = dao.getById(id).orElseThrow(() -> new ApiException(404, "Not found"));
-            T updatedEntity = updateDtoToEntity(entity, dto);
-            return toResponseDTO.apply(dao.update(updatedEntity));
-        } catch (DatabaseException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public CompletableFuture<ResponseDTO> updateAsync(ID id, UpdateDTO dto) {
-
-        return CompletableFuture.supplyAsync(() -> update(id, dto), executorService);
+        return CompletableFuture.supplyAsync(() -> dao.getById(id).map(toResponseDTO), executorService);
     }
 
     @Override
-    public void delete(ID id) {
+    public CompletableFuture<ResponseDTO> update(ID id, UpdateDTO dto) {
 
-        try {
+        return CompletableFuture.supplyAsync(() -> {
 
-            dao.deleteById(id);
-        } catch (DatabaseException e) {
-            throw new RuntimeException(e);
-        }
+            try {
+
+                T entity = dao.getById(id).orElseThrow(() -> new ApiException(404, "Not found"));
+                T updatedEntity = updateDtoToEntity(entity, dto);
+
+                return toResponseDTO.apply(dao.update(updatedEntity));
+            } catch (DatabaseException e) {
+                throw new RuntimeException(e);
+            }
+        }, executorService);
     }
 
-    public CompletableFuture<Void> deleteAsync(ID id) {
+    @Override
+    public CompletableFuture<Void> delete(ID id) {
 
-        return CompletableFuture.runAsync(() -> delete(id), executorService);
+        return CompletableFuture.runAsync(() -> {
+
+            try {
+
+                dao.deleteById(id);
+            } catch (DatabaseException e) {
+                throw new RuntimeException(e);
+            }
+        }, executorService);
     }
 }

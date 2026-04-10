@@ -2,16 +2,17 @@ package app.service.interfaces;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 public interface IService<CreateDTO, UpdateDTO, ResponseDTO, ID> {
 
-    ResponseDTO create(CreateDTO dto);
+    CompletableFuture<ResponseDTO> create(CreateDTO dto);
 
-    List<ResponseDTO> getAll();
+    CompletableFuture<List<ResponseDTO>> getAll();
 
-    Optional<ResponseDTO> getById(ID id);
+    CompletableFuture<Optional<ResponseDTO>> getById(ID id);
 
-    ResponseDTO update(ID id, UpdateDTO dto);
+    CompletableFuture<ResponseDTO> update(ID id, UpdateDTO dto);
 
-    void delete(ID id);
+    CompletableFuture<Void> delete(ID id);
 }

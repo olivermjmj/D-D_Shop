@@ -11,7 +11,6 @@ import app.exceptions.ApiException;
 import app.service.security.PasswordService;
 
 import java.math.BigDecimal;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 public class UserServiceImpl extends AbstractService<CreateUserDTO, UpdateUserDTO, UserResponseDTO, User, Integer> {
@@ -76,10 +75,5 @@ public class UserServiceImpl extends AbstractService<CreateUserDTO, UpdateUserDT
     private boolean existsByEmail(String email) {
 
         return userDAO.getByEmail(email).isPresent();
-    }
-
-    public CompletableFuture<Boolean> existsByEmailAsync(String email) {
-
-        return CompletableFuture.supplyAsync(() -> userDAO.getByEmail(email).isPresent(), executorService);
     }
 }

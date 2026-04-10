@@ -3,56 +3,63 @@ package app.api.service;
 import app.api.client.Dnd5eClient;
 import app.api.dto.EquipmentListDTO;
 import app.api.dto.ImportedItemDTO;
+import app.config.ThreadPoolConfig;
+import app.exceptions.ApiImportException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+
 import java.util.concurrent.*;
+
 
 public class ItemImportService {
 
     private final Dnd5eClient client;
+    private final ExecutorService executorService;
 
     public ItemImportService(Dnd5eClient client) {
-        this.client = client;
+        this(client, ThreadPoolConfig.getExecutor());
     }
 
-    public List<ImportedItemDTO> importEquipment() throws Exception {
+    public ItemImportService(Dnd5eClient client, ExecutorService executorService) {
 
+        this.client = client;
+        this.executorService = executorService;
+    }
+
+    public CompletableFuture<List<ImportedItemDTO>> importEquipment() {
         EquipmentListDTO equipmentListDTO = client.fetchEquipmentList();
 
-        ExecutorService executor = Executors.newFixedThreadPool(5);
-
-        List<Callable<ImportedItemDTO>> tasks = new ArrayList<>();
-
-        for (EquipmentListDTO.ItemRefDTO itemRef : equipmentListDTO.getResults().subList(0, 20)) {
-            tasks.add(() -> {
-
-                ImportedItemDTO dto = client.fetchEquipmentDetail(itemRef.getUrl());
-
-                dto.setPrice(calculatePrice(dto));
-
-                return dto;
-            });
+        if (equipmentListDTO.getResults() == null || equipmentListDTO.getResults().isEmpty()) {
+            return CompletableFuture.completedFuture(List.of());
         }
 
-        List<Future<ImportedItemDTO>> futures =
-                executor.invokeAll(tasks);
+        int limit = Math.min(20, equipmentListDTO.getResults().size());
 
-        List<ImportedItemDTO> results = new ArrayList<>();
+        List<CompletableFuture<ImportedItemDTO>> futures = equipmentListDTO.getResults()
+                .subList(0, limit)
+                .stream()
+                .map(itemRef -> CompletableFuture.supplyAsync(() -> {
 
-        for (Future<ImportedItemDTO> future : futures) {
-            results.add(future.get());
-        }
+                    ImportedItemDTO dto = client.fetchEquipmentDetail(itemRef.getUrl());
+                    dto.setPrice(calculatePrice(dto));
+                    return dto;
+                }, executorService))
+                .toList();
 
-        executor.shutdown();
+        CompletableFuture<Void> allDone = CompletableFuture.allOf(
+                futures.toArray(new CompletableFuture[0])
+        );
 
-        return results;
+        return allDone.thenApply(v -> futures.stream()
+                .map(CompletableFuture::join)
+                .toList());
     }
 
-    BigDecimal calculatePrice(ImportedItemDTO importedItemDTO) {
+    private BigDecimal calculatePrice(ImportedItemDTO importedItemDTO) {
 
-        if (importedItemDTO.getCost() == null) {
+        if (importedItemDTO.getCost() == null || importedItemDTO.getCost().getUnit() == null) {
             return BigDecimal.ZERO;
         }
 
@@ -60,9 +67,12 @@ public class ItemImportService {
         String unit = importedItemDTO.getCost().getUnit().name();
 
         return switch (unit) {
+            case "pp" -> BigDecimal.valueOf(quantity * 1000L);
             case "gp" -> BigDecimal.valueOf(quantity * 100L);
+            case "ep" -> BigDecimal.valueOf(quantity * 50L);
             case "sp" -> BigDecimal.valueOf(quantity * 10L);
             case "cp" -> BigDecimal.valueOf(quantity);
+
             default -> BigDecimal.ZERO;
         };
     }

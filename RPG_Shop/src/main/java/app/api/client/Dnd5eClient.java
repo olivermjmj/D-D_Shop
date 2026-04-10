@@ -2,6 +2,7 @@ package app.api.client;
 
 import app.api.dto.EquipmentListDTO;
 import app.api.dto.ImportedItemDTO;
+import app.exceptions.ApiImportException;
 import app.utils.HttpClientHelper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -11,24 +12,34 @@ public class Dnd5eClient {
     private final ObjectMapper mapper;
 
     public Dnd5eClient(ObjectMapper mapper) {
+
         this.mapper = mapper;
     }
 
-    public EquipmentListDTO fetchEquipmentList() throws Exception {
+    public EquipmentListDTO fetchEquipmentList() {
 
-        String json = HttpClientHelper.get(BASE_URL + "/api/2014/equipment");
+        try {
 
-        return mapper.readValue(json, EquipmentListDTO.class);
+            String json = HttpClientHelper.get(BASE_URL + "/api/2014/equipment");
+
+            return mapper.readValue(json, EquipmentListDTO.class);
+        } catch (Exception e) {
+            throw new ApiImportException("Failed to fetch equipment list", e);
+        }
     }
 
-    public ImportedItemDTO fetchEquipmentDetail(String url) throws Exception {
+    public ImportedItemDTO fetchEquipmentDetail(String url) {
 
-        String json = HttpClientHelper.get(BASE_URL + url);
+        try {
 
-        ImportedItemDTO dto = mapper.readValue(json, ImportedItemDTO.class);
+            String json = HttpClientHelper.get(BASE_URL + url);
 
-        dto.setExternalSource("DND5E");
+            ImportedItemDTO dto = mapper.readValue(json, ImportedItemDTO.class);
+            dto.setExternalSource("DND5E");
 
-        return dto;
+            return dto;
+        } catch (Exception e) {
+            throw new ApiImportException("Failed to fetch equipment detail", e);
+        }
     }
 }

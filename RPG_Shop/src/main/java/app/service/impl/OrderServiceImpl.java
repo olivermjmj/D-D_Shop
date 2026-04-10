@@ -1,5 +1,6 @@
 package app.service.impl;
 
+import app.config.ThreadPoolConfig;
 import app.dao.AddressDAO;
 import app.dao.OrderDAO;
 import app.dao.UserDAO;
@@ -12,6 +13,8 @@ import app.exceptions.ApiException;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 public class OrderServiceImpl extends AbstractService<CreateOrderDTO, UpdateOrderDTO, OrderResponseDTO, Order, Integer> {
 
@@ -21,12 +24,12 @@ public class OrderServiceImpl extends AbstractService<CreateOrderDTO, UpdateOrde
 
     public OrderServiceImpl() {
 
-        this(new OrderDAO());
+        this(new OrderDAO(), ThreadPoolConfig.getExecutor());
     }
 
-    public OrderServiceImpl(OrderDAO orderDAO) {
+    public OrderServiceImpl(OrderDAO orderDAO, ExecutorService executorService) {
 
-        super(orderDAO, OrderResponseDTO::fromEntity);
+        super(orderDAO, OrderResponseDTO::fromEntity, executorService);
         this.orderDAO = orderDAO;
     }
 
@@ -48,41 +51,60 @@ public class OrderServiceImpl extends AbstractService<CreateOrderDTO, UpdateOrde
     protected Order updateDtoToEntity(Order order, UpdateOrderDTO dto) {
 
         if (dto.orderStatus() != null) {
+
             order.setOrderStatus(dto.orderStatus());
         }
 
         if (dto.addressId() != null) {
+
             order.setAddress(addressDAO.getById(dto.addressId()).orElseThrow(() -> new ApiException(404, "Address not found")));
         }
 
         return order;
     }
 
-    public OrderResponseDTO getByIdWithItems(int id) {
+    public CompletableFuture<OrderResponseDTO> getByIdWithItems(int id) {
 
-        Order order = orderDAO.getByIdWithItems(id).orElseThrow(() -> new ApiException(404, "Order not found"));
+        return CompletableFuture.supplyAsync(() -> {
 
-        return OrderResponseDTO.fromEntity(order);
+            Order order = orderDAO.getByIdWithItems(id).orElseThrow(() -> new ApiException(404, "Order not found"));
+
+            return OrderResponseDTO.fromEntity(order);
+            }, executorService);
     }
 
-    public List<OrderResponseDTO> getAllByUserId(int userId) {
+    public CompletableFuture<List<OrderResponseDTO>> getAllByUserId(int userId) {
 
-        return orderDAO.getAllByUserId(userId)
-                .stream()
-                .map(OrderResponseDTO::fromEntity)
-                .toList();
+        return CompletableFuture.supplyAsync(() -> {
+
+            userDAO.getById(userId).orElseThrow(() -> new ApiException(404, "User not found"));
+
+            return orderDAO.getAllByUserId(userId)
+                    .stream()
+                    .map(OrderResponseDTO::fromEntity)
+                    .toList();
+        }, executorService);
     }
 
-    public List<OrderResponseDTO> getAllByStatus(OrderStatus status) {
+    public CompletableFuture<List<OrderResponseDTO>> getAllByStatus(OrderStatus status) {
 
-        return orderDAO.getAllByStatus(status)
-                .stream()
-                .map(OrderResponseDTO::fromEntity)
-                .toList();
+        return CompletableFuture.supplyAsync(() -> orderDAO.getAllByStatus(status)
+                                .stream()
+                                .map(OrderResponseDTO::fromEntity)
+                                .toList(), executorService);
     }
 
-    public BigDecimal getTotalPriceByOrderId(int id) {
+    public CompletableFuture<BigDecimal> getTotalPriceByOrderId(int id) {
 
-        return orderDAO.getTotalPriceByOrderId(id);
+        return CompletableFuture.supplyAsync(() -> {
+
+            BigDecimal totalPrice = orderDAO.getTotalPriceByOrderId(id);
+
+            if (totalPrice == null) {
+                throw new ApiException(404, "Order not found");
+            }
+
+            return totalPrice;
+        }, executorService);
     }
 }

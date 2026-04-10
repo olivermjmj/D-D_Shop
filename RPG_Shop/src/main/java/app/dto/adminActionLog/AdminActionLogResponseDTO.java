@@ -1,11 +1,11 @@
-package app.dto;
+package app.dto.adminActionLog;
 
 import app.entities.AdminActionLog;
 import app.entities.enums.AdminActionType;
 
 import java.time.Instant;
 
-public record AdminActionLogDTO(
+public record AdminActionLogResponseDTO(
 
         int id,
         int adminId,
@@ -14,9 +14,10 @@ public record AdminActionLogDTO(
         Integer targetId,
         Instant createdAt
 ) {
-    public static AdminActionLogDTO fromEntity(AdminActionLog adminActionLog) {
+    public static AdminActionLogResponseDTO fromEntity(AdminActionLog adminActionLog) {
 
-        return new AdminActionLogDTO(
+        return new AdminActionLogResponseDTO(
+
                 adminActionLog.getId(),
                 adminActionLog.getAdmin().getId(),
                 adminActionLog.getAction(),

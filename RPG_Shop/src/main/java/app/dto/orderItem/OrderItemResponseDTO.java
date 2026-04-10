@@ -1,10 +1,10 @@
-package app.dto;
+package app.dto.orderItem;
 
 import app.entities.OrderItem;
 
 import java.math.BigDecimal;
 
-public record OrderItemDTO(
+public record OrderItemResponseDTO(
 
         int id,
         int orderId,
@@ -12,10 +12,8 @@ public record OrderItemDTO(
         int quantity,
         BigDecimal priceAtPurchase
 ) {
-    public static OrderItemDTO fromEntity(OrderItem orderItem) {
-
-        return new OrderItemDTO(
-
+    public static OrderItemResponseDTO fromEntity(OrderItem orderItem) {
+        return new OrderItemResponseDTO(
                 orderItem.getId(),
                 orderItem.getOrder().getId(),
                 orderItem.getItem().getId(),

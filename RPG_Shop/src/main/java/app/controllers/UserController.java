@@ -12,6 +12,7 @@ public class UserController {
     private static final UserServiceImpl userService = new UserServiceImpl();
 
     public static void addRoutes(Javalin app) {
+
         app.get("/users", UserController::getAll);
         app.get("/users/{id}", UserController::getById);
         app.post("/users", UserController::create);

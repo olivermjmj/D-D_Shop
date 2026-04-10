@@ -1,10 +1,10 @@
-package app.dto;
+package app.dto.stockChange;
 
 import app.entities.StockChange;
 
 import java.time.Instant;
 
-public record StockChangeDTO(
+public record StockChangeResponseDTO(
 
         int id,
         int itemId,
@@ -13,10 +13,9 @@ public record StockChangeDTO(
         Instant createdAt,
         Integer performedByUserId
 ) {
-    public static StockChangeDTO fromEntity(StockChange stockChange) {
+    public static StockChangeResponseDTO fromEntity(StockChange stockChange) {
 
-        return new StockChangeDTO(
-
+        return new StockChangeResponseDTO(
                 stockChange.getId(),
                 stockChange.getItem().getId(),
                 stockChange.getDelta(),
