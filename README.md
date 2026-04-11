@@ -3,7 +3,7 @@
 A backend portfolio project built during my 3rd semester in software development.  
 The project is designed as a fantasy-themed online shop inspired by Dungeons & Dragons, with focus on backend architecture, persistence, DTO mapping, asynchronous services, and external API integration.
 
-The goal was to build more than a basic CRUD application by working with a larger domain model and a layered architecture using entities, DAOs, services, DTOs, and controllers.
+The goal was to build more than a basic CRUD application by working with a larger domain model and a layered architecture using entities, DAOs, services, DTOs, controllers, and API integration.
 
 ---
 
@@ -50,9 +50,10 @@ The project follows a layered architecture:
 
 - **Entities** define the domain model
 - **DAOs** handle persistence and database queries
-- **DTOs** separate input/output models from entities
-- **Services** contain business logic, validation, mapping, and async orchestration
+- **DTOs** separate input and output models from entities
+- **Services** handle business logic, validation, mapping, and async orchestration
 - **Controllers** expose the backend through REST endpoints
+- **API client/service classes** handle external API communication and import logic
 
 This structure was chosen to keep responsibilities separated and make the project easier to test, extend, and maintain.
 
@@ -62,18 +63,25 @@ This structure was chosen to keep responsibilities separated and make the projec
 
 ```text
 RPG_Shop/
-└── src/
-    ├── main/
-    │   ├── java/app/
-    │   │   ├── config
-    │   │   ├── controllers
-    │   │   ├── dao
-    │   │   ├── dto
-    │   │   ├── entities
-    │   │   ├── exceptions
-    │   │   ├── service
-    │   │   ├── utils
-    │   │   └── Main.java
-    │   └── resources/
-    └── test/
-        └── java/app/
+├── pom.xml
+├── src/
+│   ├── main/
+│   │   ├── java/app/
+│   │   │   ├── api
+│   │   │   ├── config
+│   │   │   ├── controllers
+│   │   │   ├── dao
+│   │   │   ├── dto
+│   │   │   ├── entities
+│   │   │   ├── exceptions
+│   │   │   ├── service
+│   │   │   ├── utils
+│   │   │   └── Main.java
+│   │   └── resources
+│   └── test/
+│       └── java/app/
+│           ├── api.service
+│           ├── dao
+│           └── service.impl
+└── doc/
+```
