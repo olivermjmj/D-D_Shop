@@ -30,7 +30,5 @@ public class Main {
         StockChangeController.addRoutes(app);
         AddressController.addRoutes(app);
         OrderItemController.addRoutes(app);
-
-        ThreadPoolConfig.getExecutor().shutdown();
     }
 }

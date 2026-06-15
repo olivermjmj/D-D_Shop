@@ -10,7 +10,6 @@ import java.util.Optional;
 
 public class UserDAO extends AbstractDAO<User, Integer> {
 
-
     public UserDAO() {
         super(User.class);
     }

@@ -18,7 +18,8 @@ public class AdminActionLogDAO extends AbstractDAO<AdminActionLog, Integer> {
 
             return em.createQuery("SELECT a " +
                                      "FROM AdminActionLog a " +
-                                     "WHERE a.admin.id = :adminId", AdminActionLog.class)
+                                     "WHERE a.admin.id = :adminId " +
+                                     "ORDER BY a.createdAt DESC", AdminActionLog.class)
                     .setParameter("adminId", adminId).getResultList();
         }
     }
