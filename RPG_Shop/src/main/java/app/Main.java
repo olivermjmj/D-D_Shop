@@ -1,5 +1,6 @@
 package app;
 
+import app.api.controller.ItemImportController;
 import app.config.ThreadPoolConfig;
 import app.controllers.*;
 import io.javalin.Javalin;
@@ -30,5 +31,6 @@ public class Main {
         StockChangeController.addRoutes(app);
         AddressController.addRoutes(app);
         OrderItemController.addRoutes(app);
+        ItemImportController.addRoutes(app);
     }
 }
