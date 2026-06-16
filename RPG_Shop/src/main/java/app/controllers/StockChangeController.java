@@ -4,6 +4,7 @@ import app.dto.stockChange.CreateStockChangeDTO;
 import app.dto.stockChange.UpdateStockChangeDTO;
 import app.exceptions.ApiException;
 import app.service.impl.StockChangeServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -25,11 +26,13 @@ public class StockChangeController {
     }
 
     public static void getAll(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         ctx.future(() -> stockChangeService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
@@ -41,6 +44,7 @@ public class StockChangeController {
     }
 
     public static void getAllByItemId(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int itemId = Integer.parseInt(ctx.pathParam("itemId"));
 
@@ -49,6 +53,7 @@ public class StockChangeController {
     }
 
     public static void getAllByAdminId(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int adminId = Integer.parseInt(ctx.pathParam("adminId"));
 
@@ -57,6 +62,7 @@ public class StockChangeController {
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         CreateStockChangeDTO dto = ctx.bodyAsClass(CreateStockChangeDTO.class);
 
@@ -70,6 +76,7 @@ public class StockChangeController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateStockChangeDTO dto = ctx.bodyAsClass(UpdateStockChangeDTO.class);
@@ -79,6 +86,7 @@ public class StockChangeController {
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 

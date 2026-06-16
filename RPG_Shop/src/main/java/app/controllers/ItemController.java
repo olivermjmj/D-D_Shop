@@ -4,8 +4,10 @@ import app.dto.item.CreateItemDTO;
 import app.dto.item.UpdateItemDTO;
 import app.exceptions.ApiException;
 import app.service.impl.ItemServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+
 
 public class ItemController {
 
@@ -89,12 +91,12 @@ public class ItemController {
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         CreateItemDTO dto = ctx.bodyAsClass(CreateItemDTO.class);
 
         ctx.future(() ->
                 itemService.create(dto).thenAccept(item -> {
-
                     ctx.status(201);
                     ctx.json(item);
                 })
@@ -102,6 +104,7 @@ public class ItemController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateItemDTO dto = ctx.bodyAsClass(UpdateItemDTO.class);
@@ -111,6 +114,7 @@ public class ItemController {
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 

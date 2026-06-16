@@ -4,6 +4,7 @@ import app.dto.discount.CreateDiscountDTO;
 import app.dto.discount.UpdateDiscountDTO;
 import app.exceptions.ApiException;
 import app.service.impl.DiscountServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -39,6 +40,7 @@ public class DiscountController {
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         CreateDiscountDTO dto = ctx.bodyAsClass(CreateDiscountDTO.class);
 
@@ -52,6 +54,7 @@ public class DiscountController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateDiscountDTO dto = ctx.bodyAsClass(UpdateDiscountDTO.class);
@@ -61,6 +64,7 @@ public class DiscountController {
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 

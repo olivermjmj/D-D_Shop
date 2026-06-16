@@ -4,6 +4,7 @@ import app.dto.supplier.CreateSupplierDTO;
 import app.dto.supplier.UpdateSupplierDTO;
 import app.exceptions.ApiException;
 import app.service.impl.SupplierServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -22,12 +23,14 @@ public class SupplierController {
     }
 
     public static void getAll(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         ctx.future(() ->
                 supplierService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
@@ -38,6 +41,7 @@ public class SupplierController {
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         CreateSupplierDTO dto = ctx.bodyAsClass(CreateSupplierDTO.class);
 
@@ -51,6 +55,7 @@ public class SupplierController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateSupplierDTO dto = ctx.bodyAsClass(UpdateSupplierDTO.class);
@@ -60,6 +65,7 @@ public class SupplierController {
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 

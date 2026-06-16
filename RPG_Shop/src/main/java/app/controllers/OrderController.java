@@ -146,13 +146,13 @@ public class OrderController {
     }
 
     private static Role getRole(Context ctx) {
-        String role = ctx.attribute("role");
+        Role role = ctx.attribute("role");
 
         if (role == null) {
             throw new ApiException(401, "Unauthorized");
         }
 
-        return Role.valueOf(role);
+        return role;
     }
 
     private static void requireAdmin(Context ctx) {

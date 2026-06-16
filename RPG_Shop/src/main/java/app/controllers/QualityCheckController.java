@@ -5,6 +5,7 @@ import app.dto.qualityCheck.UpdateQualityCheckDTO;
 import app.entities.enums.QualityStatus;
 import app.exceptions.ApiException;
 import app.service.impl.QualityCheckServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -27,12 +28,14 @@ public class QualityCheckController {
     }
 
     public static void getAll(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         ctx.future(() ->
                 qualityCheckService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
@@ -43,6 +46,7 @@ public class QualityCheckController {
     }
 
     public static void getAllByItemId(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int itemId = Integer.parseInt(ctx.pathParam("itemId"));
 
@@ -51,6 +55,7 @@ public class QualityCheckController {
     }
 
     public static void getAllByStatus(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         try {
 
@@ -64,6 +69,7 @@ public class QualityCheckController {
     }
 
     public static void getAllByApprovedById(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int userId = Integer.parseInt(ctx.pathParam("userId"));
 
@@ -73,6 +79,7 @@ public class QualityCheckController {
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         CreateQualityCheckDTO dto = ctx.bodyAsClass(CreateQualityCheckDTO.class);
 
@@ -86,6 +93,7 @@ public class QualityCheckController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateQualityCheckDTO dto = ctx.bodyAsClass(UpdateQualityCheckDTO.class);
@@ -95,6 +103,7 @@ public class QualityCheckController {
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 

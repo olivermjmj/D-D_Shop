@@ -4,6 +4,7 @@ import app.dto.itemCategory.CreateItemCategoryDTO;
 import app.dto.itemCategory.UpdateItemCategoryDTO;
 import app.exceptions.ApiException;
 import app.service.impl.ItemCategoryServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -38,12 +39,12 @@ public class ItemCategoryController {
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         CreateItemCategoryDTO dto = ctx.bodyAsClass(CreateItemCategoryDTO.class);
 
         ctx.future(() ->
                 itemCategoryService.create(dto).thenAccept(category -> {
-
                     ctx.status(201);
                     ctx.json(category);
                 })
@@ -51,6 +52,7 @@ public class ItemCategoryController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateItemCategoryDTO dto = ctx.bodyAsClass(UpdateItemCategoryDTO.class);
@@ -60,6 +62,7 @@ public class ItemCategoryController {
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 

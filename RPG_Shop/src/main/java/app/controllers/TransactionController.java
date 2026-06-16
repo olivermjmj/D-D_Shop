@@ -2,9 +2,11 @@ package app.controllers;
 
 import app.dto.transaction.CreateTransactionDTO;
 import app.dto.transaction.UpdateTransactionDTO;
+import app.entities.enums.Role;
 import app.entities.enums.TransactionType;
 import app.exceptions.ApiException;
 import app.service.impl.TransactionServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -26,58 +28,68 @@ public class TransactionController {
     }
 
     public static void getAll(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         ctx.future(() ->
                 transactionService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
+        AuthMiddleware.requireLogin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
+        int userId = getUserId(ctx);
+        Role role = getRole(ctx);
 
         ctx.future(() ->
-                transactionService.getById(id).thenAccept(transaction ->
-                        ctx.json(transaction.orElseThrow(() ->
-                                new ApiException(404, "Transaction not found"))))
-        );
+                transactionService.getByIdForUser(id, userId, role).thenAccept(ctx::json));
     }
 
     public static void getAllByUserId(Context ctx) {
+        AuthMiddleware.requireLogin(ctx);
 
-        int userId = Integer.parseInt(ctx.pathParam("userId"));
+        int requestedUserId = Integer.parseInt(ctx.pathParam("userId"));
+        int userId = getUserId(ctx);
+        Role role = getRole(ctx);
 
         ctx.future(() ->
-                transactionService.getAllByUserId(userId).thenAccept(ctx::json));
+                transactionService.getAllByUserIdForUser(requestedUserId, userId, role).thenAccept(ctx::json));
     }
 
     public static void getAllByOrderId(Context ctx) {
+        AuthMiddleware.requireLogin(ctx);
 
         int orderId = Integer.parseInt(ctx.pathParam("orderId"));
+        int userId = getUserId(ctx);
+        Role role = getRole(ctx);
 
         ctx.future(() ->
-                transactionService.getAllByOrderId(orderId).thenAccept(ctx::json));
+                transactionService.getAllByOrderIdForUser(orderId, userId, role).thenAccept(ctx::json));
     }
 
     public static void getAllByType(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         try {
-
             TransactionType type = TransactionType.valueOf(ctx.pathParam("type").toUpperCase());
 
             ctx.future(() ->
                     transactionService.getAllByType(type).thenAccept(ctx::json));
+
         } catch (IllegalArgumentException e) {
             throw new ApiException(400, "Invalid transaction type");
         }
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireLogin(ctx);
 
+        int userId = getUserId(ctx);
+        Role role = getRole(ctx);
         CreateTransactionDTO dto = ctx.bodyAsClass(CreateTransactionDTO.class);
 
         ctx.future(() ->
-                transactionService.create(dto).thenAccept(transaction -> {
-
+                transactionService.createForUser(dto, userId, role).thenAccept(transaction -> {
                     ctx.status(201);
                     ctx.json(transaction);
                 })
@@ -85,6 +97,7 @@ public class TransactionController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateTransactionDTO dto = ctx.bodyAsClass(UpdateTransactionDTO.class);
@@ -94,11 +107,32 @@ public class TransactionController {
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
         ctx.future(() ->
                 transactionService.delete(id).thenRun(() ->
                         ctx.status(204)));
+    }
+
+    private static int getUserId(Context ctx) {
+        Integer userId = ctx.attribute("userId");
+
+        if (userId == null) {
+            throw new ApiException(401, "Unauthorized");
+        }
+
+        return userId;
+    }
+
+    private static Role getRole(Context ctx) {
+        Role role = ctx.attribute("role");
+
+        if (role == null) {
+            throw new ApiException(401, "Unauthorized");
+        }
+
+        return role;
     }
 }

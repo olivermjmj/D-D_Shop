@@ -2,8 +2,10 @@ package app.controllers;
 
 import app.dto.orderItem.CreateOrderItemDTO;
 import app.dto.orderItem.UpdateOrderItemDTO;
+import app.entities.enums.Role;
 import app.exceptions.ApiException;
 import app.service.impl.OrderItemServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -25,30 +27,36 @@ public class OrderItemController {
     }
 
     public static void getAll(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         ctx.future(() ->
                 orderItemService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
+        AuthMiddleware.requireLogin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
+        int userId = getUserId(ctx);
+        Role role = getRole(ctx);
 
         ctx.future(() ->
-                orderItemService.getById(id).thenAccept(orderItem ->
-                        ctx.json(orderItem.orElseThrow(() ->
-                                        new ApiException(404, "Order item not found")))));
+                orderItemService.getByIdForUser(id, userId, role).thenAccept(ctx::json));
     }
 
     public static void getAllByOrderId(Context ctx) {
+        AuthMiddleware.requireLogin(ctx);
 
         int orderId = Integer.parseInt(ctx.pathParam("orderId"));
+        int userId = getUserId(ctx);
+        Role role = getRole(ctx);
 
         ctx.future(() ->
-                orderItemService.getAllByOrderId(orderId).thenAccept(ctx::json));
+                orderItemService.getAllByOrderIdForUser(orderId, userId, role).thenAccept(ctx::json));
     }
 
     public static void getAllByItemId(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int itemId = Integer.parseInt(ctx.pathParam("itemId"));
 
@@ -57,12 +65,14 @@ public class OrderItemController {
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireLogin(ctx);
 
+        int userId = getUserId(ctx);
+        Role role = getRole(ctx);
         CreateOrderItemDTO dto = ctx.bodyAsClass(CreateOrderItemDTO.class);
 
         ctx.future(() ->
-                orderItemService.create(dto).thenAccept(orderItem -> {
-
+                orderItemService.createForUser(dto, userId, role).thenAccept(orderItem -> {
                     ctx.status(201);
                     ctx.json(orderItem);
                 })
@@ -70,20 +80,46 @@ public class OrderItemController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireLogin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
+        int userId = getUserId(ctx);
+        Role role = getRole(ctx);
         UpdateOrderItemDTO dto = ctx.bodyAsClass(UpdateOrderItemDTO.class);
 
         ctx.future(() ->
-                orderItemService.update(id, dto).thenAccept(ctx::json));
+                orderItemService.updateForUser(id, dto, userId, role).thenAccept(ctx::json));
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireLogin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
+        int userId = getUserId(ctx);
+        Role role = getRole(ctx);
 
         ctx.future(() ->
-                orderItemService.delete(id).thenRun(() ->
+                orderItemService.deleteForUser(id, userId, role).thenRun(() ->
                         ctx.status(204)));
+    }
+
+    private static int getUserId(Context ctx) {
+        Integer userId = ctx.attribute("userId");
+
+        if (userId == null) {
+            throw new ApiException(401, "Unauthorized");
+        }
+
+        return userId;
+    }
+
+    private static Role getRole(Context ctx) {
+        Role role = ctx.attribute("role");
+
+        if (role == null) {
+            throw new ApiException(401, "Unauthorized");
+        }
+
+        return role;
     }
 }

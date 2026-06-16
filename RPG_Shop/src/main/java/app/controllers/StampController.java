@@ -4,6 +4,7 @@ import app.dto.stamp.CreateStampDTO;
 import app.dto.stamp.UpdateStampDTO;
 import app.exceptions.ApiException;
 import app.service.impl.StampServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -22,12 +23,14 @@ public class StampController {
     }
 
     public static void getAll(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         ctx.future(() ->
                 stampService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
@@ -38,6 +41,7 @@ public class StampController {
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         CreateStampDTO dto = ctx.bodyAsClass(CreateStampDTO.class);
 
@@ -51,6 +55,7 @@ public class StampController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateStampDTO dto = ctx.bodyAsClass(UpdateStampDTO.class);
@@ -60,6 +65,7 @@ public class StampController {
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 

@@ -4,6 +4,7 @@ import app.dto.address.CreateAddressDTO;
 import app.dto.address.UpdateAddressDTO;
 import app.exceptions.ApiException;
 import app.service.impl.AddressServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -22,12 +23,14 @@ public class AddressController {
     }
 
     public static void getAll(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         ctx.future(() ->
                 addressService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
@@ -38,6 +41,7 @@ public class AddressController {
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         CreateAddressDTO dto = ctx.bodyAsClass(CreateAddressDTO.class);
 
@@ -51,6 +55,7 @@ public class AddressController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateAddressDTO dto = ctx.bodyAsClass(UpdateAddressDTO.class);
@@ -60,6 +65,7 @@ public class AddressController {
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 

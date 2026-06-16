@@ -4,6 +4,7 @@ import app.dto.inventory.CreateInventoryDTO;
 import app.dto.inventory.UpdateInventoryDTO;
 import app.exceptions.ApiException;
 import app.service.impl.InventoryServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -28,12 +29,14 @@ public class InventoryController {
     }
 
     public static void getAll(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         ctx.future(() ->
                 inventoryService.getAll().thenAccept(ctx::json));
     }
 
     public static void getById(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
@@ -45,6 +48,7 @@ public class InventoryController {
     }
 
     public static void getByItemId(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int itemId = Integer.parseInt(ctx.pathParam("itemId"));
 
@@ -53,6 +57,7 @@ public class InventoryController {
     }
 
     public static void create(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         CreateInventoryDTO dto = ctx.bodyAsClass(CreateInventoryDTO.class);
 
@@ -66,6 +71,7 @@ public class InventoryController {
     }
 
     public static void update(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
         UpdateInventoryDTO dto = ctx.bodyAsClass(UpdateInventoryDTO.class);
@@ -75,6 +81,7 @@ public class InventoryController {
     }
 
     public static void delete(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int id = Integer.parseInt(ctx.pathParam("id"));
 
@@ -83,6 +90,7 @@ public class InventoryController {
     }
 
     public static void addStock(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int itemId = Integer.parseInt(ctx.pathParam("itemId"));
         int amount = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("amount")));
@@ -92,6 +100,7 @@ public class InventoryController {
     }
 
     public static void removeStock(Context ctx) {
+        AuthMiddleware.requireAdmin(ctx);
 
         int itemId = Integer.parseInt(ctx.pathParam("itemId"));
         int amount = Integer.parseInt(Objects.requireNonNull(ctx.queryParam("amount")));
