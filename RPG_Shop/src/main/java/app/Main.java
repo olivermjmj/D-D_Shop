@@ -1,6 +1,7 @@
 package app;
 
 import app.api.controller.ItemImportController;
+import app.config.DataSeeder;
 import app.config.ThreadPoolConfig;
 import app.controllers.*;
 import io.javalin.Javalin;
@@ -13,7 +14,7 @@ public class Main {
 
         Javalin app = Javalin.create(config -> {
             config.showJavalinBanner = false;
-        }).start(7070);
+        });
 
         app.get("/", ctx -> ctx.result("D&D Shop Backend running"));
 
@@ -32,5 +33,9 @@ public class Main {
         AddressController.addRoutes(app);
         OrderItemController.addRoutes(app);
         ItemImportController.addRoutes(app);
+
+        app.start(7070);
+
+        DataSeeder.seedDndItems();
     }
 }
