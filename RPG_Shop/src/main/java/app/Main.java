@@ -5,6 +5,7 @@ import app.config.DataSeeder;
 import app.config.ThreadPoolConfig;
 import app.controllers.*;
 import io.javalin.Javalin;
+import io.javalin.plugin.bundled.CorsPluginConfig;
 
 public class Main {
 
@@ -14,6 +15,11 @@ public class Main {
 
         Javalin app = Javalin.create(config -> {
             config.showJavalinBanner = false;
+
+            config.bundledPlugins.enableCors(cors -> {
+
+                cors.addRule(CorsPluginConfig.CorsRule::anyHost);
+            });
         });
 
         app.get("/", ctx -> ctx.result("D&D Shop Backend running"));

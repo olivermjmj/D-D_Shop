@@ -41,7 +41,8 @@ public class AddressController {
     }
 
     public static void create(Context ctx) {
-        AuthMiddleware.requireAdmin(ctx);
+
+        AuthMiddleware.requireLogin(ctx);
 
         CreateAddressDTO dto = ctx.bodyAsClass(CreateAddressDTO.class);
 

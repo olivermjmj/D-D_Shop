@@ -7,6 +7,7 @@ import app.entities.enums.OrderStatus;
 import app.entities.enums.Role;
 import app.exceptions.ApiException;
 import app.service.impl.OrderServiceImpl;
+import app.service.security.AuthMiddleware;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 
@@ -38,6 +39,9 @@ public class OrderController {
     }
 
     public static void getMyOrders(Context ctx) {
+
+        AuthMiddleware.requireLogin(ctx);
+
         int userId = getUserId(ctx);
 
         ctx.future(() ->
@@ -45,6 +49,9 @@ public class OrderController {
     }
 
     public static void getById(Context ctx) {
+
+        AuthMiddleware.requireLogin(ctx);
+
         int id = Integer.parseInt(ctx.pathParam("id"));
         int userId = getUserId(ctx);
         Role role = getRole(ctx);
@@ -54,6 +61,9 @@ public class OrderController {
     }
 
     public static void getByIdWithItems(Context ctx) {
+
+        AuthMiddleware.requireLogin(ctx);
+
         int id = Integer.parseInt(ctx.pathParam("id"));
         int userId = getUserId(ctx);
         Role role = getRole(ctx);
@@ -86,6 +96,9 @@ public class OrderController {
     }
 
     public static void getTotalPriceByOrderId(Context ctx) {
+
+        AuthMiddleware.requireLogin(ctx);
+
         int id = Integer.parseInt(ctx.pathParam("id"));
         int userId = getUserId(ctx);
         Role role = getRole(ctx);
@@ -95,6 +108,9 @@ public class OrderController {
     }
 
     public static void create(Context ctx) {
+
+        AuthMiddleware.requireLogin(ctx);
+
         int userId = getUserId(ctx);
         CreateOrderDTO dto = ctx.bodyAsClass(CreateOrderDTO.class);
 
@@ -107,6 +123,9 @@ public class OrderController {
     }
 
     public static void update(Context ctx) {
+
+        AuthMiddleware.requireLogin(ctx);
+
         int id = Integer.parseInt(ctx.pathParam("id"));
         int userId = getUserId(ctx);
         Role role = getRole(ctx);
@@ -156,6 +175,9 @@ public class OrderController {
     }
 
     private static void requireAdmin(Context ctx) {
+
+        AuthMiddleware.requireLogin(ctx);
+
         if (getRole(ctx) != Role.ADMIN) {
             throw new ApiException(403, "Admin only");
         }
